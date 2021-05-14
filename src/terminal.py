@@ -8,6 +8,9 @@ from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GLib
 
+WIN_TITLE = "saneterm"
+TERM = "dumb"
+
 class PtySource(GLib.Source):
     master = -1
 
@@ -21,7 +24,7 @@ class PtySource(GLib.Source):
 
         pid, self.master = pty.fork()
         if pid == pty.CHILD:
-            os.execvpe(self.cmd[0], self.cmd, {"TERM": "dumb"})
+            os.execvpe(self.cmd[0], self.cmd, {"TERM": TERM})
 
         self.add_unix_fd(self.master, GLib.IOCondition.IN)
         return False, -1
@@ -39,7 +42,7 @@ class Terminal(Gtk.Window):
         self.pty.attach(None)
 
         self.last_mark = None
-        Gtk.Window.__init__(self, title="saneterm")
+        Gtk.Window.__init__(self, title=WIN_TITLE)
 
         self.textview = Gtk.TextView()
         self.textview.set_editable(False)
