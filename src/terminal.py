@@ -79,9 +79,9 @@ class Terminal(Gtk.Window):
         return GLib.SOURCE_CONTINUE
 
     def user_input(self, buffer):
-        start = self.textbuffer.get_iter_at_mark(self.last_mark)
-        end = self.textbuffer.get_end_iter()
+        start = buffer.get_iter_at_mark(self.last_mark)
+        end = buffer.get_end_iter()
 
-        text = self.textbuffer.get_text(start, end, True)
+        text = buffer.get_text(start, end, True)
         os.write(self.pty.master, text.encode("UTF-8"))
-        self.last_mark = self.textbuffer.create_mark(None, end, True)
+        self.last_mark = buffer.create_mark(None, end, True)
