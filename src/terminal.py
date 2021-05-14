@@ -39,7 +39,7 @@ class Terminal(Gtk.Window):
         self.pty.attach(None)
 
         self.last_mark = None
-        Gtk.Window.__init__(self, title="Hello World")
+        Gtk.Window.__init__(self, title="saneterm")
 
         self.textview = Gtk.TextView()
         self.textview.set_editable(False)
