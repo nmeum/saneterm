@@ -13,6 +13,9 @@ from gi.repository import GLib
 WIN_TITLE = "saneterm"
 TERM = "dumb"
 
+# XXX: Can also be looked up using unicodedata.lookup("DEL").
+DEL_CHAR = b'\x7f'
+
 class PtySource(GLib.Source):
     master = -1
 
@@ -55,6 +58,7 @@ class Terminal(Gtk.Window):
 
         self.textbuffer = self.textview.get_buffer()
         self.textbuffer.connect("end-user-action", self.user_input)
+        self.textview.connect("backspace", self.backspace)
 
         end = self.textbuffer.get_end_iter()
         self.last_mark = self.textbuffer.create_mark(None, end, True)
@@ -77,6 +81,9 @@ class Terminal(Gtk.Window):
         self.last_mark = self.textbuffer.create_mark(None, end, True)
 
         return GLib.SOURCE_CONTINUE
+
+    def backspace(self, textview):
+        os.write(self.pty.master, DEL_CHAR)
 
     def user_input(self, buffer):
         start = buffer.get_iter_at_mark(self.last_mark)
