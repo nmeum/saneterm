@@ -80,6 +80,7 @@ class Terminal(Gtk.Window):
         signals = {
             "kill-after-output": self.kill_after_output,
             "move-input-start": self.move_input_start,
+            "move-input-end": self.move_input_end,
         }
 
         for signal in signals.items():
@@ -136,3 +137,9 @@ class Terminal(Gtk.Window):
 
         start = buffer.get_iter_at_mark(self.last_output_mark)
         buffer.place_cursor(start)
+
+    def move_input_end(self, textview):
+        buffer = textview.get_buffer()
+
+        end = buffer.get_iter_at_mark(self.last_mark)
+        buffer.place_cursor(end)
