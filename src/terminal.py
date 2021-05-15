@@ -112,6 +112,9 @@ class Terminal(Gtk.Window):
         end = buffer.get_end_iter()
 
         text = buffer.get_text(start, end, True)
+        if text == "\n":
+            self.last_output_mark = buffer.create_mark(None, end, True)
+
         os.write(self.pty.master, text.encode("UTF-8"))
         self.last_mark = buffer.create_mark(None, end, True)
 
