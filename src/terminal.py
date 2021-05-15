@@ -1,3 +1,4 @@
+import sys
 import pty
 import os
 
@@ -24,6 +25,11 @@ class PtySource(GLib.Source):
 
         pid, self.master = pty.fork()
         if pid == pty.CHILD:
+            # Terminal options enforced by saneterm.
+            # Most importantly, local echo is disabled. Instead we show
+            # characters on input directly in the GTK TextView/TextBuffer.
+            os.system("stty -onlcr -echo")
+
             os.execvpe(self.cmd[0], self.cmd, {"TERM": TERM})
 
         self.add_unix_fd(self.master, GLib.IOCondition.IN)
@@ -41,15 +47,16 @@ class Terminal(Gtk.Window):
         self.pty.set_callback(self.handle_pty)
         self.pty.attach(None)
 
-        self.last_mark = None
         Gtk.Window.__init__(self, title=WIN_TITLE)
 
         self.textview = Gtk.TextView()
-        self.textview.set_editable(False)
         self.textview.set_wrap_mode(Gtk.WrapMode(Gtk.WrapMode.WORD_CHAR))
 
         self.textbuffer = self.textview.get_buffer()
-        self.connect("key-press-event", self.insert)
+        self.textbuffer.connect("end-user-action", self.user_input)
+
+        end = self.textbuffer.get_end_iter()
+        self.last_mark = self.textbuffer.create_mark(None, end, True)
 
         self.add(self.textview)
 
@@ -66,6 +73,10 @@ class Terminal(Gtk.Window):
 
         return GLib.SOURCE_CONTINUE
 
-    def insert(self, widget, event):
-        ch = chr(Gdk.keyval_to_unicode(event.keyval))
-        os.write(self.pty.master, ch.encode('UTF-8'))
+    def user_input(self, buffer):
+        start = self.textbuffer.get_iter_at_mark(self.last_mark)
+        end = self.textbuffer.get_end_iter()
+
+        text = self.textbuffer.get_text(start, end, True)
+        os.write(self.pty.master, text.encode("UTF-8"))
+        self.last_mark = self.textbuffer.create_mark(None, end, True)
