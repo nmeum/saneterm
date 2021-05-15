@@ -1,6 +1,7 @@
 import sys
 import pty
 import os
+import codecs
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -58,15 +59,19 @@ class Terminal(Gtk.Window):
         end = self.textbuffer.get_end_iter()
         self.last_mark = self.textbuffer.create_mark(None, end, True)
 
+        # Block-wise reading from the PTY requires an incremental decoder.
+        self.decoder = codecs.getincrementaldecoder('UTF-8')()
+
         self.add(self.textview)
 
     def handle_pty(self, master):
+        # XXX: Should be possible to read more than one byte here.
         data = os.read(master, 1)
         if not data:
             raise AssertionError("expected data but did not receive any")
 
         end = self.textbuffer.get_end_iter()
-        self.textbuffer.insert(end, data.decode('UTF-8'))
+        self.textbuffer.insert(end, self.decoder.decode(data))
 
         end = self.textbuffer.get_end_iter()
         self.last_mark = self.textbuffer.create_mark(None, end, True)
