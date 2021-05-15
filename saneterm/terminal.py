@@ -4,6 +4,7 @@ import os
 import codecs
 
 import input
+from termview import *
 
 import gi
 gi.require_version("Gtk", "3.0")
@@ -34,7 +35,7 @@ class PtySource(GLib.Source):
         if pid == pty.CHILD:
             # Terminal options enforced by saneterm.
             # Most importantly, local echo is disabled. Instead we show
-            # characters on input directly in the GTK TextView/TextBuffer.
+            # characters on input directly in the GTK termview/TextBuffer.
             os.system("stty -onlcr -echo")
 
             os.execvpe(self.cmd[0], self.cmd, {"TERM": TERM})
@@ -56,39 +57,17 @@ class Terminal(Gtk.Window):
         self.pty.set_callback(self.handle_pty)
         self.pty.attach(None)
 
-        self.textview = Gtk.TextView()
-        self.textview.set_wrap_mode(Gtk.WrapMode(Gtk.WrapMode.WORD_CHAR))
-
-        self.textbuffer = self.textview.get_buffer()
-        self.textbuffer.connect("end-user-action", self.user_input)
-
-        end = self.textbuffer.get_end_iter()
-        self.last_mark = self.textbuffer.create_mark(None, end, True)
-        self.last_output_mark = None
+        self.termview = TermView()
+        self.termview.set_wrap_mode(Gtk.WrapMode(Gtk.WrapMode.WORD_CHAR))
 
         # Block-wise reading from the PTY requires an incremental decoder.
         self.decoder = codecs.getincrementaldecoder('UTF-8')()
 
         bindings = input.KeyBindings()
-        bindings.apply(self.textview)
+        bindings.apply(self.termview)
 
-        self.bind_custom_signals()
-        self.add(self.textview)
-
-    def bind_custom_signals(self):
-        signals = {
-            "kill-after-output": self.kill_after_output,
-            "move-input-start": self.move_input_start,
-            "move-input-end": self.move_input_end,
-        }
-
-        for signal in signals.items():
-            name, func = signal
-            GObject.signal_new(name, self.textview,
-                    GObject.SIGNAL_ACTION, GObject.TYPE_NONE,
-                    ())
-
-            self.textview.connect(name, func)
+        self.termview.connect("new-user-input", self.user_input)
+        self.add(self.termview)
 
     def handle_pty(self, master):
         # XXX: Should be possible to read more than one byte here.
@@ -96,49 +75,15 @@ class Terminal(Gtk.Window):
         if not data:
             raise AssertionError("expected data but did not receive any")
 
-        end = self.textbuffer.get_end_iter()
-        self.textbuffer.insert(end, self.decoder.decode(data))
-
-        end = self.textbuffer.get_end_iter()
-        self.last_mark = self.textbuffer.create_mark(None, end, True)
-        self.last_output_mark = self.last_mark
-
+        self.termview.insert_data(self.decoder.decode(data))
         return GLib.SOURCE_CONTINUE
 
-    def user_input(self, buffer):
-        start = buffer.get_iter_at_mark(self.last_mark)
-        end = buffer.get_end_iter()
-
-        text = buffer.get_text(start, end, True)
-        if text == "\n":
-            start = buffer.get_iter_at_mark(self.last_output_mark)
-            line = buffer.get_text(start, end, True)
-
-            os.write(self.pty.master, line.encode("UTF-8"))
-            self.last_output_mark = buffer.create_mark(None, end, True)
-
-        self.last_mark = buffer.create_mark(None, end, True)
-
-    def kill_after_output(self, textview):
-        if self.last_output_mark is None:
+    def user_input(self, termview, text):
+        if text != "\n":
             return
-        buffer = textview.get_buffer()
 
-        start = buffer.get_iter_at_mark(self.last_output_mark)
-        end = buffer.get_end_iter()
+        line = termview.get_line()
+        os.write(self.pty.master, line.encode("UTF-8"))
 
-        buffer.delete(start, end)
-
-    def move_input_start(self, textview):
-        if self.last_output_mark is None:
-            return
-        buffer = textview.get_buffer()
-
-        start = buffer.get_iter_at_mark(self.last_output_mark)
-        buffer.place_cursor(start)
-
-    def move_input_end(self, textview):
-        buffer = textview.get_buffer()
-
-        end = buffer.get_iter_at_mark(self.last_mark)
-        buffer.place_cursor(end)
+        # Start new input line
+        termview.newline()
