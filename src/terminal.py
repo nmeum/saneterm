@@ -3,6 +3,8 @@ import pty
 import os
 import codecs
 
+import input
+
 import gi
 gi.require_version("Gtk", "3.0")
 
@@ -65,6 +67,9 @@ class Terminal(Gtk.Window):
 
         # Block-wise reading from the PTY requires an incremental decoder.
         self.decoder = codecs.getincrementaldecoder('UTF-8')()
+
+        bindings = input.KeyBindings()
+        bindings.apply(self.textview)
 
         self.add(self.textview)
 
