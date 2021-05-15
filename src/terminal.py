@@ -20,8 +20,8 @@ class PtySource(GLib.Source):
     master = -1
 
     def __init__(self, cmd):
-        self.cmd = cmd
         GLib.Source.__init__(self)
+        self.cmd = cmd
 
     def prepare(self):
         if self.master != -1:
@@ -47,11 +47,11 @@ class PtySource(GLib.Source):
 
 class Terminal(Gtk.Window):
     def __init__(self, cmd):
+        Gtk.Window.__init__(self, title=WIN_TITLE)
+
         self.pty = PtySource(cmd)
         self.pty.set_callback(self.handle_pty)
         self.pty.attach(None)
-
-        Gtk.Window.__init__(self, title=WIN_TITLE)
 
         self.textview = Gtk.TextView()
         self.textview.set_wrap_mode(Gtk.WrapMode(Gtk.WrapMode.WORD_CHAR))
