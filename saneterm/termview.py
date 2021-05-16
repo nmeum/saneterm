@@ -5,6 +5,24 @@ from gi.repository import Gtk
 from gi.repository import GObject
 
 class TermView(Gtk.TextView):
+    """
+    TextView-based widget for line-based terminal emulators. The widget
+    has two input sources (a) input entered by the application user and
+    (b) input received from a backend (usually a PTY).
+
+    Since the widget is line-based, user input is only received after
+    the user finishes input of the current line by emitting a newline
+    character. Afterwards, a new-user-input signal is emitted to which
+    the application should connect. To display input received from the
+    backend source (e.g. a PTY) the insert_data method should be used.
+
+    Internally, the widget tracks input through two markers. The
+    _last_output_mark tracks the position in the underlying TextView
+    where data from the backend source was last written. While the
+    _last_mark constitues the position where user input would be
+    added.
+    """
+
     def __init__(self):
         Gtk.TextView.__init__(self)
 
