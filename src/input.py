@@ -8,6 +8,7 @@ class KeyBindings():
     stylesheet = b"""
         @binding-set saneterm-key-bindings {
             bind "<ctrl>u" { "kill-after-output" () };
+            bind "<ctrl>a" { "move-input-start" () };
         }
 
         * {

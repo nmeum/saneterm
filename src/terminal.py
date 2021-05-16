@@ -79,6 +79,7 @@ class Terminal(Gtk.Window):
     def bind_custom_signals(self):
         signals = {
             "kill-after-output": self.kill_after_output,
+            "move-input-start": self.move_input_start,
         }
 
         for signal in signals.items():
@@ -127,3 +128,11 @@ class Terminal(Gtk.Window):
         end = buffer.get_end_iter()
 
         buffer.delete(start, end)
+
+    def move_input_start(self, textview):
+        if self.last_output_mark is None:
+            return
+        buffer = textview.get_buffer()
+
+        start = buffer.get_iter_at_mark(self.last_output_mark)
+        buffer.place_cursor(start)
