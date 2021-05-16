@@ -76,12 +76,5 @@ class Terminal(Gtk.Window):
         self.termview.insert_data(self.decoder.decode(data))
         return GLib.SOURCE_CONTINUE
 
-    def user_input(self, termview, text):
-        if text != "\n":
-            return
-
-        line = termview.get_line()
+    def user_input(self, termview, line):
         os.write(self.pty.master, line.encode("UTF-8"))
-
-        # Start new input line
-        termview.newline()

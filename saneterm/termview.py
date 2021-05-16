@@ -34,32 +34,28 @@ class TermView(Gtk.TextView):
                 (GObject.TYPE_PYOBJECT,))
 
     def insert_data(self, str):
-        # Append given string to current buffer
         self._textbuffer.insert(self._textbuffer.get_end_iter(), str)
 
         end = self._textbuffer.get_end_iter()
         self._last_mark = self._textbuffer.create_mark(None, end, True)
         self._last_output_mark = self._last_mark
 
-    def get_line(self):
-        buffer = self._textbuffer
-
-        start = buffer.get_iter_at_mark(self._last_output_mark)
-        end = buffer.get_end_iter()
-
-        return buffer.get_text(start, end, True)
-
-    def newline(self):
-        end = self._textbuffer.get_end_iter()
-        self._last_output_mark = self._textbuffer.create_mark(None, end, True)
-
     def __end_user_action(self, buffer):
-        start = buffer.get_iter_at_mark(self._last_mark)
-        end = buffer.get_end_iter()
+        end = self._textbuffer.get_end_iter()
+        text = buffer.get_text(buffer.get_iter_at_mark(self._last_mark),
+                end, True)
 
-        text = buffer.get_text(start, end, True)
-        self.emit("new-user-input", text)
-        self._last_mark = buffer.create_mark(None, end, True)
+        if text != "\n":
+            self._last_mark = buffer.create_mark(None, end, True)
+            return
+
+        line_start = buffer.get_iter_at_mark(self._last_output_mark)
+        line = buffer.get_text(line_start, end, True)
+
+        self.emit("new-user-input", line)
+
+        self._last_output_mark = self._textbuffer.create_mark(None, end, True)
+        self._last_mark = self._last_mark
 
     def __kill_after_output(self, textview):
         buffer = textview.get_buffer()
