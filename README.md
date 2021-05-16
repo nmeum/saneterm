@@ -8,7 +8,17 @@ To-Do.
 
 ## Installation
 
-To-Do.
+This software has the following dependencies:
+
+* [python3][python web]
+* [PyGObject][PyGObject web] and [gtk+3.0][gtk web]
+* [setuptools][setuptools web]
+
+If these are installed run the following command to install `saneterm`:
+
+	$ python3 setup.py install --optimize=1
+
+For development setups just run `python3 saneterm/__main__.py`.
 
 ## FAQ
 
@@ -28,3 +38,8 @@ Public License for more details.
 
 You should have received a copy of the GNU General Public License along
 with this program. If not, see <http://www.gnu.org/licenses/>.
+
+[python web]: https://www.python.org/
+[PyGObject web]: https://pygobject.readthedocs.io/en/latest/
+[gtk web]: https://gtk.org/
+[setuptools web]: https://pygobject.readthedocs.io/en/latest/
