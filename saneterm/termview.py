@@ -62,8 +62,6 @@ class TermView(Gtk.TextView):
         self._last_mark = buffer.create_mark(None, end, True)
 
     def __kill_after_output(self, textview):
-        if self._last_output_mark is None:
-            return
         buffer = textview.get_buffer()
 
         start = buffer.get_iter_at_mark(self._last_output_mark)
@@ -72,8 +70,6 @@ class TermView(Gtk.TextView):
         buffer.delete(start, end)
 
     def __move_input_start(self, textview):
-        if self._last_output_mark is None:
-            return
         buffer = textview.get_buffer()
 
         start = buffer.get_iter_at_mark(self._last_output_mark)
