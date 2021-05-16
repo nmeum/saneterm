@@ -2,6 +2,7 @@ import sys
 import pty
 import os
 import codecs
+import termios
 
 import input
 from termview import *
@@ -62,6 +63,8 @@ class Terminal(Gtk.Window):
         bindings.apply(self.termview)
 
         self.termview.connect("new-user-input", self.user_input)
+        self.termview.connect("interrupt", self.interrupt)
+
         self.add(self.termview)
 
     def handle_pty(self, master):
@@ -75,3 +78,7 @@ class Terminal(Gtk.Window):
 
     def user_input(self, termview, line):
         os.write(self.pty.master, line.encode("UTF-8"))
+
+    def interrupt(self, termview):
+        cc = termios.tcgetattr(self.pty.master)[-1]
+        os.write(self.pty.master, cc[termios.VINTR])

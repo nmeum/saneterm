@@ -37,6 +37,7 @@ class TermView(Gtk.TextView):
             "kill-after-output": self.__kill_after_output,
             "move-input-start": self.__move_input_start,
             "move-input-end": self.__move_input_end,
+            "interrupt": None
         }
 
         for signal in signals.items():
@@ -45,7 +46,8 @@ class TermView(Gtk.TextView):
                     GObject.SIGNAL_ACTION, GObject.TYPE_NONE,
                     ())
 
-            self.connect(name, func)
+            if not func is None:
+                self.connect(name, func)
 
         GObject.signal_new("new-user-input", self,
                 GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE,

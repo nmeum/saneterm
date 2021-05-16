@@ -10,6 +10,7 @@ class KeyBindings():
             bind "<ctrl>u" { "kill-after-output" () };
             bind "<ctrl>a" { "move-input-start" () };
             bind "<ctrl>e" { "move-input-end" () };
+            bind "<ctrl>c" { "interrupt" () };
         }
 
         * {
