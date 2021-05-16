@@ -11,6 +11,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GLib
+from gi.repository import GObject
 
 WIN_TITLE = "saneterm"
 TERM = "dumb"
@@ -64,6 +65,7 @@ class Terminal(Gtk.Window):
 
         end = self.textbuffer.get_end_iter()
         self.last_mark = self.textbuffer.create_mark(None, end, True)
+        self.last_output_mark = None
 
         # Block-wise reading from the PTY requires an incremental decoder.
         self.decoder = codecs.getincrementaldecoder('UTF-8')()
@@ -71,7 +73,21 @@ class Terminal(Gtk.Window):
         bindings = input.KeyBindings()
         bindings.apply(self.textview)
 
+        self.bind_custom_signals()
         self.add(self.textview)
+
+    def bind_custom_signals(self):
+        signals = {
+            "kill-after-output": self.kill_after_output,
+        }
+
+        for signal in signals.items():
+            name, func = signal
+            GObject.signal_new(name, self.textview,
+                    GObject.SIGNAL_ACTION, GObject.TYPE_NONE,
+                    ())
+
+            self.textview.connect(name, func)
 
     def handle_pty(self, master):
         # XXX: Should be possible to read more than one byte here.
@@ -84,6 +100,7 @@ class Terminal(Gtk.Window):
 
         end = self.textbuffer.get_end_iter()
         self.last_mark = self.textbuffer.create_mark(None, end, True)
+        self.last_output_mark = self.last_mark
 
         return GLib.SOURCE_CONTINUE
 
@@ -97,3 +114,13 @@ class Terminal(Gtk.Window):
         text = buffer.get_text(start, end, True)
         os.write(self.pty.master, text.encode("UTF-8"))
         self.last_mark = buffer.create_mark(None, end, True)
+
+    def kill_after_output(self, textview):
+        if self.last_output_mark is None:
+            return
+        buffer = textview.get_buffer()
+
+        start = buffer.get_iter_at_mark(self.last_output_mark)
+        end = buffer.get_end_iter()
+
+        buffer.delete(start, end)
