@@ -11,3 +11,4 @@
 * Handle termination of shell correctly
 * Handling of stty(1) specific key bindings such as ctrl-h, ctrl-j, …
 * Background Color, Foreground Color, … configuration via argparse
+* 9term-like file name completions using ctrl+f
