@@ -15,9 +15,6 @@ from gi.repository import GLib
 WIN_TITLE = "saneterm"
 TERM = "dumb"
 
-# XXX: Can also be looked up using unicodedata.lookup("DEL").
-DEL_CHAR = b'\x7f'
-
 class PtySource(GLib.Source):
     master = -1
 
