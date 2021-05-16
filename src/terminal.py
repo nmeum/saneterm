@@ -61,7 +61,6 @@ class Terminal(Gtk.Window):
 
         self.textbuffer = self.textview.get_buffer()
         self.textbuffer.connect("end-user-action", self.user_input)
-        self.textview.connect("backspace", self.backspace)
 
         end = self.textbuffer.get_end_iter()
         self.last_mark = self.textbuffer.create_mark(None, end, True)
@@ -106,18 +105,18 @@ class Terminal(Gtk.Window):
 
         return GLib.SOURCE_CONTINUE
 
-    def backspace(self, textview):
-        os.write(self.pty.master, DEL_CHAR)
-
     def user_input(self, buffer):
         start = buffer.get_iter_at_mark(self.last_mark)
         end = buffer.get_end_iter()
 
         text = buffer.get_text(start, end, True)
         if text == "\n":
+            start = buffer.get_iter_at_mark(self.last_output_mark)
+            line = buffer.get_text(start, end, True)
+
+            os.write(self.pty.master, line.encode("UTF-8"))
             self.last_output_mark = buffer.create_mark(None, end, True)
 
-        os.write(self.pty.master, text.encode("UTF-8"))
         self.last_mark = buffer.create_mark(None, end, True)
 
     def kill_after_output(self, textview):
