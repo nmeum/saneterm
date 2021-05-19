@@ -77,8 +77,7 @@ class Terminal(Gtk.Window):
             Gtk.main_quit()
             return GLib.SOURCE_REMOVE
 
-        # XXX: Should be possible to read more than one byte here.
-        data = os.read(master, 1)
+        data = os.read(master, 4096)
         if not data:
             raise AssertionError("expected data but did not receive any")
 
