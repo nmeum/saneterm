@@ -22,6 +22,7 @@ class PtySource(GLib.Source):
     def __init__(self, cmd):
         GLib.Source.__init__(self)
         self.cmd = cmd
+        self.tag = None
 
     def prepare(self):
         if self.master != -1:
@@ -36,14 +37,16 @@ class PtySource(GLib.Source):
 
             os.execvpe(self.cmd[0], self.cmd, {"TERM": TERM})
 
-        self.add_unix_fd(self.master, GLib.IOCondition.IN)
+        events = GLib.IOCondition.IN|GLib.IOCondition.HUP
+        self.tag = self.add_unix_fd(self.master, events)
+
         return False, -1
 
     def check(self):
         return False
 
     def dispatch(self, callback, args):
-        return callback(self.master)
+        return callback(self, self.tag, self.master)
 
 class Terminal(Gtk.Window):
     def __init__(self, cmd):
@@ -68,7 +71,12 @@ class Terminal(Gtk.Window):
 
         self.add(self.termview)
 
-    def handle_pty(self, master):
+    def handle_pty(self, source, tag, master):
+        cond = source.query_unix_fd(tag)
+        if cond & GLib.IOCondition.HUP:
+            Gtk.main_quit()
+            return GLib.SOURCE_REMOVE
+
         # XXX: Should be possible to read more than one byte here.
         data = os.read(master, 1)
         if not data:
