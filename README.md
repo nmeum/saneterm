@@ -8,7 +8,7 @@ Line-based terminal emulator without support for ANSI escape sequences.
 
 Mainstream terminal emulators (urxvt, xterm, alacritty, …) support a
 standard known as [ANSI escape sequences][wikipedia ansi]. This standard
-defines several special byte sequences to provide special control
+defines several byte sequences to provide special control
 functions for terminals emulators. This includes control of the cursor,
 support for different colors, et cetera. They are often used to
 implement TUIs (e.g. using the [ncurses][ncurses web] library).
