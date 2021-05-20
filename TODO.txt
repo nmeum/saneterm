@@ -1,5 +1,5 @@
 * Key bindings and focus on line-based editing
-	* readline-like keybindings like ctrl-a, ctrl-e, ctrl-w, …
+	* more readline-like keybindings
 	* terminal-global editing history?
 * Support for **some** ANSI escape sequences
 	* Colors
@@ -7,8 +7,7 @@
 * Pager replacement
 	* Plan 9 inspired scrolling support (autoscroll, …)
 	* Dialog to find text in current buffer
-* In-place editing inspired by 9term
-* Handle termination of shell correctly
-* Handling of stty(1) specific key bindings such as ctrl-h, ctrl-j, …
-* Background Color, Foreground Color, … configuration via argparse
+* Forward some special tty bindings (such as Ctrl+Z) to the PTY
+  instead of intercepting them in Gtk (vte has code for that)
+* Basic support for raw mode
 * 9term-like file name completions using ctrl+f
