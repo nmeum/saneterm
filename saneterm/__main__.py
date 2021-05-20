@@ -5,7 +5,7 @@ from terminal import *
 
 def get_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('command', metavar='CMD', type=list, nargs='*',
+    parser.add_argument('command', metavar='CMD', type=str, nargs='*',
                         default=['sh'], help='Command to execute')
 
     return parser
