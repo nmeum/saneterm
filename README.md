@@ -151,7 +151,7 @@ with this program. If not, see <http://www.gnu.org/licenses/>.
 [python web]: https://www.python.org/
 [PyGObject web]: https://pygobject.readthedocs.io/en/latest/
 [gtk web]: https://gtk.org/
-[setuptools web]: https://pygobject.readthedocs.io/en/latest/
+[setuptools web]: https://pypi.python.org/pypi/setuptools
 [wikipedia ed]: https://en.wikipedia.org/wiki/Ed_(text_editor)
 [emacs tramp mode]: https://www.emacswiki.org/emacs/TrampMode
 [variable-width glyphs]: https://gitlab.freedesktop.org/terminal-wg/specifications/-/issues/21
