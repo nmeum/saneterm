@@ -62,9 +62,24 @@ If these are installed run the following command to install `saneterm`:
 
 For development setups just run `python3 saneterm/__main__.py`.
 
-## Usage
+## Configuration
 
-To-Do.
+The terminal appearance can be configured using [Gtk's CSS][gtk css]
+feature. The saneterm window widget can be selected using the CSS
+selector `#saneterm`.
+
+For example, to change the color scheme and employed font. Add the
+following to your `gtk.css` configuration file located at
+`$XDG_CONFIG_HOME/gtk-3.0/gtk.css`:
+
+	#saneterm * {
+		font-size: 15px;
+		font-family: "Terminus";
+
+		background-color: #181818;
+		color: #d8d8d8;
+	}
+
 
 ## FAQ
 
@@ -131,3 +146,4 @@ with this program. If not, see <http://www.gnu.org/licenses/>.
 [rio man page]: https://9p.io/magic/man2html/1/rio
 [9term man page]: https://9fans.github.io/plan9port/man/man1/9term.html
 [plan9port web]: https://9fans.github.io/plan9port/
+[gtk css]: https://developer.gnome.org/gtk3/stable/chap-css-overview.html
