@@ -2,6 +2,8 @@
 
 Line-based terminal emulator without support for ANSI escape sequences.
 
+![saneterm demo](https://gist.githubusercontent.com/nmeum/51d89900c9c7beef49cace24ebc605ec/raw/14b9eeb25483c82fa3672875bb24ff33dbdf932a/saneterm.gif)
+
 ## Motivation
 
 Mainstream terminal emulators (urxvt, xterm, alacritty, …) support a
