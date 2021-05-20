@@ -64,6 +64,16 @@ If these are installed run the following command to install `saneterm`:
 
 For development setups just run `python3 saneterm/__main__.py`.
 
+## Usage
+
+Since many modern day shells use ANSI escape sequences heavily for
+providing editing features, your favorite shell might not directly work
+with `saneterm`. Simple shells like [dash][dash web] are known to work
+well though. You might also want to consider using a clean environment,
+to do so run the following command to start `saneterm`:
+
+	$ saneterm -- env -i dash
+
 ## Configuration
 
 The terminal appearance can be configured using [Gtk's CSS][gtk css]
@@ -149,3 +159,4 @@ with this program. If not, see <http://www.gnu.org/licenses/>.
 [9term man page]: https://9fans.github.io/plan9port/man/man1/9term.html
 [plan9port web]: https://9fans.github.io/plan9port/
 [gtk css]: https://developer.gnome.org/gtk3/stable/chap-css-overview.html
+[dash web]: http://gondor.apana.org.au/~herbert/dash/
