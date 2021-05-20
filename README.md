@@ -11,7 +11,7 @@ standard known as [ANSI escape sequences][wikipedia ansi]. This standard
 defines several byte sequences to provide special control
 functions for terminals emulators. This includes control of the cursor,
 support for different colors, et cetera. They are often used to
-implement TUIs (e.g. using the [ncurses][ncurses web] library).
+implement TUIs, e.g. using the [ncurses][ncurses web] library.
 
 Many of these escape sequences operate on rows and columns and therefore
 require terminal emulators to be built around a character grid were
@@ -24,12 +24,12 @@ emulator supporting the aforementioned escape sequences can never fully
 support Unicode [\[1\]][variable-width glyphs].
 
 On the other hand, a terminal emulator not supporting ANSI escape
-sequences can never support TUIs. However, the idea behind `saneterm` is
-that terminals shouldn't be used to implement TUIs anyhow and should
-instead focus on line-based CLIs. By focusing on line-based CLIs, a
-variety of features normally implemented in CLI programs themselves
-(like [readline][readline web]-keybindings) can be implemented directly
-in the terminal emulator.
+sequences can never support existing TUIs. However, the idea behind
+`saneterm` is that terminals shouldn't be used to implement TUIs anyhow,
+instead they should focus on line-based CLIs. By doing so, a variety of
+features normally implemented in CLI programs themselves (like
+[readline][readline web]-keybindings) can be implemented directly in the
+terminal emulator.
 
 ## Status
 
@@ -67,7 +67,7 @@ For development setups just run `python3 saneterm/__main__.py`.
 ## Configuration
 
 The terminal appearance can be configured using [Gtk's CSS][gtk css]
-feature. The saneterm window widget can be selected using the CSS
+feature. The `saneterm` window widget can be selected using the CSS
 selector `#saneterm`.
 
 For example, to change the color scheme and employed font. Add the
