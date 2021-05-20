@@ -35,7 +35,8 @@ class PtySource(GLib.Source):
             # characters on input directly in the GTK termview/TextBuffer.
             os.system("stty -onlcr -echo")
 
-            os.execvpe(self.cmd[0], self.cmd, {"TERM": TERM})
+            os.environ["TERM"] = TERM
+            os.execvp(self.cmd[0], self.cmd)
 
         events = GLib.IOCondition.IN|GLib.IOCondition.HUP
         self.tag = self.add_unix_fd(self.master, events)
