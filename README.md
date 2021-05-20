@@ -26,8 +26,8 @@ sequences can never support TUIs. However, the idea behind `saneterm` is
 that terminals shouldn't be used to implement TUIs anyhow and should
 instead focus on line-based CLIs. By focusing on line-based CLIs, a
 variety of features normally implemented in CLI programs themselves
-(like readline-keybindings) can be implemented directly in the terminal
-emulator.
+(like [readline][readline web]-keybindings) can be implemented directly
+in the terminal emulator.
 
 ## Status
 
@@ -40,7 +40,7 @@ things can be simplified and improved. `saneterm` is presently just a
 prototype and currently provides only the following features:
 
 * Full Unicode support
-* Support for [readline][readline web]-like line editing
+* Support for readline-like line editing
 
 Planned features include:
 
@@ -104,7 +104,7 @@ bindings for Gtk.
 ## Related Work
 
 This work is heavily inspired by the Plan 9 terminal emulator, usage of
-which is further described in the [`rio(1)` man page][rio man page].
+which is further described in the [`rio(1)`][rio man page] man page.
 This terminal emulator was also [ported to Unix][9term man page] as part
 of [plan9port][plan9port web].
 
