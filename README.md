@@ -121,7 +121,7 @@ This terminal emulator was also [ported to Unix][9term man page] as part
 of [plan9port][plan9port web].
 
 There are also a few projects which seem to share the problem statement
-outlined in the Motivation but proposes different solution. Most of
+outlined in the Motivation but propose different solution. Most of
 which include continued support for TUIs and therefore don't benefit
 from other line-based editing features. Non-complete list:
 
