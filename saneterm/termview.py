@@ -60,6 +60,16 @@ class TermView(Gtk.TextView):
         self._last_mark = self._textbuffer.create_mark(None, end, True)
         self._last_output_mark = self._last_mark
 
+    def do_backspace(self):
+        buf = self._textbuffer
+
+        cur = buf.get_iter_at_offset(buf.props.cursor_position)
+        out = buf.get_iter_at_mark(self._last_output_mark)
+
+        # If current position is output positon ignore backspace.
+        if cur.compare(out) != 0:
+            Gtk.TextView.do_backspace(self)
+
     def __end_user_action(self, buffer):
         end = self._textbuffer.get_end_iter()
         text = buffer.get_text(buffer.get_iter_at_mark(self._last_mark),
