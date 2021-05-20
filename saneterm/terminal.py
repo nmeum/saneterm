@@ -13,7 +13,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GLib
 
-WIN_TITLE = "saneterm"
+NAME = "saneterm"
 TERM = "dumb"
 
 class PtySource(GLib.Source):
@@ -47,7 +47,8 @@ class PtySource(GLib.Source):
 
 class Terminal(Gtk.Window):
     def __init__(self, cmd):
-        Gtk.Window.__init__(self, title=WIN_TITLE)
+        Gtk.Window.__init__(self, title=NAME)
+        self.set_name(NAME)
 
         self.pty = PtySource(cmd)
         self.pty.set_callback(self.handle_pty)
