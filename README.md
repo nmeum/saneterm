@@ -92,7 +92,7 @@ emulator doesn't support visual editors?
 relies on TUIs to be used over PTYs and SSH on remote machines. This is
 mostly also an inherit flaw of Unix as it hasn't been designed with
 networking and GUIs in mind. Plan 9 solves this problem through 9P file
-servers, but unfortunately it has not been widely adapted and we are
+servers, but unfortunately it has not been widely adopted and we are
 stuck with Unix. In the Unix world potential solutions include
 CLI-based editors (e.g. [ed][wikipedia ed]) or network protocols
 tunneled over SSH connections (e.g.  [Emacs Tramp Mode][emacs tramp mode]).
