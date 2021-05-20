@@ -23,8 +23,11 @@ support Unicode [\[1\]][variable-width glyphs].
 
 On the other hand, a terminal emulator not supporting ANSI escape
 sequences can never support TUIs. However, the idea behind `saneterm` is
-that terminals shouldn't be used to implement TUIs and should instead
-focus on line-based CLIs.
+that terminals shouldn't be used to implement TUIs anyhow and should
+instead focus on line-based CLIs. By focusing on line-based CLIs, a
+variety of features normally implemented in CLI programs themselves
+(like readline-keybindings) can be implemented directly in the terminal
+emulator.
 
 ## Status
 
