@@ -83,6 +83,21 @@ tunneled over SSH connections (e.g.  [Emacs Tramp Mode][emacs tramp mode]).
 for prototyping. Furthermore, Python has decent, somewhat well-documented
 bindings for Gtk.
 
+## Related Work
+
+This work is heavily inspired by the Plan 9 terminal emulator, usage of
+which is further described in the [`rio(1)` man page][rio man page].
+This terminal emulator was also [ported to Unix][9term man page] as part
+of [plan9port][plan9port web].
+
+There are also a few projects which seem to share the problem statement
+outlined in the Motivation but proposes different solution. Most of
+which include continued support for TUIs and therefore don't benefit
+from other line-based editing features. Non-complete list:
+
+* https://github.com/withoutboats/notty
+* https://github.com/christianparpart/contour
+
 ## License
 
 This program is free software: you can redistribute it and/or modify it
@@ -110,3 +125,6 @@ with this program. If not, see <http://www.gnu.org/licenses/>.
 [wikipedia ed]: https://en.wikipedia.org/wiki/Ed_(text_editor)
 [emacs tramp mode]: https://www.emacswiki.org/emacs/TrampMode
 [variable-width glyphs]: https://gitlab.freedesktop.org/terminal-wg/specifications/-/issues/21
+[rio man page]: https://9p.io/magic/man2html/1/rio
+[9term man page]: https://9fans.github.io/plan9port/man/man1/9term.html
+[plan9port web]: https://9fans.github.io/plan9port/
