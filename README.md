@@ -19,7 +19,7 @@ approach feels dated and causes a variety of problems. For instance, the
 concept of grapheme cluster as used in [Unicode][unicode web] is largely
 incompatible with fixed-size columns. For this reason, terminal
 emulator supporting the aforementioned escape sequences can never fully
-support Unicode.
+support Unicode [\[1\]][variable-width glyphs].
 
 On the other hand, a terminal emulator not supporting ANSI escape
 sequences can never support TUIs. However, the idea behind `saneterm` is
@@ -109,3 +109,4 @@ with this program. If not, see <http://www.gnu.org/licenses/>.
 [setuptools web]: https://pygobject.readthedocs.io/en/latest/
 [wikipedia ed]: https://en.wikipedia.org/wiki/Ed_(text_editor)
 [emacs tramp mode]: https://www.emacswiki.org/emacs/TrampMode
+[variable-width glyphs]: https://gitlab.freedesktop.org/terminal-wg/specifications/-/issues/21
