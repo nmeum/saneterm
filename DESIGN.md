@@ -45,9 +45,11 @@ Presently, `saneterm` implements the latter approach. That is, custom
 [Gtk signals][gtk signals] are defined for control commands, e.g.
 `interrupt` for ctrl+c. These signals are then bound to pre-defined key
 combinations, i.e. the `interrupt` signal is bound to `ctrl+c`. The
-signal handler for the `interrupt` signal then determines the current ASCII
-control character for `VINTR` using `termios(3)` and sends this
-character to the PTY.
+signal handler for the `interrupt` signal then determines the current
+ASCII control character for `VINTR` using `termios(3)` and sends this
+character to the PTY. At the moment, these key bindings are ignored if
+the cursor is not at the buffer position where the next character would
+be entered.
 
 ### Buffering
 
