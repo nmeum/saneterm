@@ -11,6 +11,7 @@ import gi
 gi.require_version("Gtk", "3.0")
 
 from gi.repository import Gtk
+from gi.repository import Gdk
 from gi.repository import GLib
 
 NAME = "saneterm"
@@ -64,11 +65,11 @@ class Terminal(Gtk.Window):
         # Block-wise reading from the PTY requires an incremental decoder.
         self.decoder = codecs.getincrementaldecoder('UTF-8')()
 
-        bindings = input.KeyBindings()
-        bindings.apply(self.termview)
-
         self.termview.connect("new-user-input", self.user_input)
-        self.termview.connect("interrupt", self.interrupt)
+        self.termview.connect("termios-ctrlkey", self.termios_ctrl)
+
+        bindings = input.KeyBindings(self.termview)
+        bindings.add_bind("<ctrl>c", "termios-ctrlkey", termios.VINTR)
 
         self.add(self.termview)
 
@@ -88,10 +89,11 @@ class Terminal(Gtk.Window):
     def user_input(self, termview, line):
         os.write(self.pty.master, line.encode("UTF-8"))
 
-    def interrupt(self, termview):
+    def termios_ctrl(self, termview, cidx):
+        # TODO: Employ some heuristic to cache tcgetattr result.
         cc = termios.tcgetattr(self.pty.master)[-1]
-        os.write(self.pty.master, cc[termios.VINTR])
+        os.write(self.pty.master, cc[cidx])
 
         # XXX: Clear line-based buffer here (i.e. update the
         # marks in TermView) in case the application doesn't
-        # write anything to the PTY on receiving VINTR.
+        # write anything to the PTY on receiving the CC.

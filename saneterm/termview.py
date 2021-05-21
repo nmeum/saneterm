@@ -21,6 +21,10 @@ class TermView(Gtk.TextView):
     where data from the backend source was last written. While the
     _last_mark constitues the position where user input would be
     added.
+
+    Control characters are not line-buffered. Instead these are
+    intercepted through pre-defined key bindings by Gtk and communicated
+    to the application via the termios-ctrlkey signal.
     """
 
     def __init__(self):
@@ -37,7 +41,6 @@ class TermView(Gtk.TextView):
             "kill-after-output": self.__kill_after_output,
             "move-input-start": self.__move_input_start,
             "move-input-end": self.__move_input_end,
-            "interrupt": None
         }
 
         for signal in signals.items():
@@ -46,8 +49,11 @@ class TermView(Gtk.TextView):
                     GObject.SIGNAL_ACTION, GObject.TYPE_NONE,
                     ())
 
-            if not func is None:
-                self.connect(name, func)
+            self.connect(name, func)
+
+        GObject.signal_new("termios-ctrlkey", self,
+                GObject.SIGNAL_ACTION, GObject.TYPE_NONE,
+                (GObject.TYPE_LONG,))
 
         GObject.signal_new("new-user-input", self,
                 GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE,

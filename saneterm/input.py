@@ -10,7 +10,6 @@ class KeyBindings():
             bind "<ctrl>u" { "kill-after-output" () };
             bind "<ctrl>a" { "move-input-start" () };
             bind "<ctrl>e" { "move-input-end" () };
-            bind "<ctrl>c" { "interrupt" () };
         }
 
         * {
@@ -18,11 +17,21 @@ class KeyBindings():
         }
     """
 
-    def __init__(self):
+    def __init__(self, widget):
         self.provider = Gtk.CssProvider()
         self.provider.load_from_data(self.stylesheet)
 
-    def apply(self, widget):
         style_ctx = widget.get_style_context()
         style_ctx.add_provider(self.provider,
                 Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
+    def add_bind(self, key, signal, arg):
+        bindings = self.__binding_set()
+        # Using Gtk.BindingEntry.add_signall() would be preferable
+        # https://gitlab.gnome.org/GNOME/pygobject/-/issues/474
+        Gtk.BindingEntry().add_signal_from_string(bindings,
+                F'bind "{key}" {{ "{signal}" ({arg}) }};')
+
+    def __binding_set(self):
+        return Gtk.BindingSet.find("saneterm-key-bindings")
+
