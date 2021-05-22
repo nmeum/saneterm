@@ -91,3 +91,7 @@ class Terminal(Gtk.Window):
     def interrupt(self, termview):
         cc = termios.tcgetattr(self.pty.master)[-1]
         os.write(self.pty.master, cc[termios.VINTR])
+
+        # XXX: Clear line-based buffer here (i.e. update the
+        # marks in TermView) in case the application doesn't
+        # write anything to the PTY on receiving VINTR.
