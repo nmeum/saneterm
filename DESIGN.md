@@ -77,7 +77,9 @@ The `saneterm` handlers also need to query the `termios(3)` setting on
 each Gtk signal to determine the current control character, which should
 be send to the PTY, using `termios(3)`.  Additionally, the line buffer
 is bypassed on these signals and any data presently stored in it is
-never received by the application.
+never received by the application. In this regarding `VEOF` (ctrl+d) is
+handled in a special way as it also causes the current line buffer to be
+written to the PTY.
 
 [9term man page]: https://9fans.github.io/plan9port/man/man1/9term.html
 [gtk textbuffer]: https://developer.gnome.org/gtk3/stable/GtkTextBuffer.html
