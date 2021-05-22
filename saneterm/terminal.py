@@ -78,7 +78,11 @@ class Terminal(Gtk.Window):
         for key, idx in control_keys.items():
             bindings.add_bind(key, "termios-ctrlkey", idx)
 
-        self.add(self.termview)
+        scroll = Gtk.ScrolledWindow().new(None, None)
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.ALWAYS)
+
+        scroll.add(self.termview)
+        self.add(scroll)
 
     def handle_pty(self, source, tag, master):
         cond = source.query_unix_fd(tag)
