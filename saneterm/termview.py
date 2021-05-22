@@ -66,6 +66,17 @@ class TermView(Gtk.TextView):
         self._last_mark = self._textbuffer.create_mark(None, end, True)
         self._last_output_mark = self._last_mark
 
+    def flush(self):
+        end = self._textbuffer.get_end_iter()
+
+        line_start = self._textbuffer.get_iter_at_mark(self._last_output_mark)
+        line = self._textbuffer.get_text(line_start, end, True)
+
+        self.emit("new-user-input", line)
+
+        self._last_output_mark = self._textbuffer.create_mark(None, end, True)
+        self._last_mark = self._last_mark
+
     def do_backspace(self):
         buf = self._textbuffer
 
@@ -77,21 +88,14 @@ class TermView(Gtk.TextView):
             Gtk.TextView.do_backspace(self)
 
     def __end_user_action(self, buffer):
+        start = buffer.get_iter_at_mark(self._last_mark)
         end = self._textbuffer.get_end_iter()
-        text = buffer.get_text(buffer.get_iter_at_mark(self._last_mark),
-                end, True)
 
-        if text != "\n":
+        text = buffer.get_text(start, end, True)
+        if text == "\n":
+            self.flush()
+        else:
             self._last_mark = buffer.create_mark(None, end, True)
-            return
-
-        line_start = buffer.get_iter_at_mark(self._last_output_mark)
-        line = buffer.get_text(line_start, end, True)
-
-        self.emit("new-user-input", line)
-
-        self._last_output_mark = self._textbuffer.create_mark(None, end, True)
-        self._last_mark = self._last_mark
 
     def __kill_after_output(self, textview):
         buffer = textview.get_buffer()
