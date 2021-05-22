@@ -4,7 +4,7 @@ import os
 import codecs
 import termios
 
-import input
+import keys
 from termview import *
 
 import gi
@@ -16,13 +16,6 @@ from gi.repository import GLib
 
 NAME = "saneterm"
 TERM = "dumb"
-
-# Control keys are intercept directly (see DESIGN.md)
-control_keys = {
-    "<ctrl>c": termios.VINTR,
-    "<ctrl>z": termios.VSUSP,
-    "<ctrl>d": termios.VEOF,
-}
 
 class PtySource(GLib.Source):
     master = -1
@@ -75,8 +68,8 @@ class Terminal(Gtk.Window):
         self.termview.connect("new-user-input", self.user_input)
         self.termview.connect("termios-ctrlkey", self.termios_ctrl)
 
-        bindings = input.KeyBindings(self.termview)
-        for key, idx in control_keys.items():
+        bindings = keys.Bindings(self.termview)
+        for key, idx in keys.CTRL.items():
             bindings.add_bind(key, "termios-ctrlkey", idx)
 
         scroll = Gtk.ScrolledWindow().new(None, None)

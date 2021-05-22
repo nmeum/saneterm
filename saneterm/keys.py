@@ -1,10 +1,19 @@
+import termios
+
 import gi
 gi.require_version("Gtk", "3.0")
 
 from gi.repository import Gtk
 from gi.repository import GObject
 
-class KeyBindings():
+# Control keys are intercept directly (see DESIGN.md)
+CTRL = {
+    "<ctrl>c": termios.VINTR,
+    "<ctrl>z": termios.VSUSP,
+    "<ctrl>d": termios.VEOF,
+}
+
+class Bindings():
     stylesheet = b"""
         @binding-set saneterm-key-bindings {
             bind "<ctrl>u" { "kill-after-output" () };
