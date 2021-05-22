@@ -21,6 +21,7 @@ TERM = "dumb"
 control_keys = {
     "<ctrl>c": termios.VINTR,
     "<ctrl>z": termios.VSUSP,
+    "<ctrl>d": termios.VEOF,
 }
 
 class PtySource(GLib.Source):
@@ -101,6 +102,9 @@ class Terminal(Gtk.Window):
         os.write(self.pty.master, line.encode("UTF-8"))
 
     def termios_ctrl(self, termview, cidx):
+        if cidx == termios.VEOF:
+            termview.flush()
+
         # TODO: Employ some heuristic to cache tcgetattr result.
         cc = termios.tcgetattr(self.pty.master)[-1]
         os.write(self.pty.master, cc[cidx])
