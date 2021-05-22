@@ -17,6 +17,12 @@ from gi.repository import GLib
 NAME = "saneterm"
 TERM = "dumb"
 
+# Control keys are intercept directly (see DESIGN.md)
+control_keys = {
+    "<ctrl>c": termios.VINTR,
+    "<ctrl>z": termios.VSUSP,
+}
+
 class PtySource(GLib.Source):
     master = -1
 
@@ -69,8 +75,8 @@ class Terminal(Gtk.Window):
         self.termview.connect("termios-ctrlkey", self.termios_ctrl)
 
         bindings = input.KeyBindings(self.termview)
-        bindings.add_bind("<ctrl>c", "termios-ctrlkey", termios.VINTR)
-        bindings.add_bind("<ctrl>z", "termios-ctrlkey", termios.VSUSP)
+        for key, idx in control_keys.items():
+            bindings.add_bind(key, "termios-ctrlkey", idx)
 
         self.add(self.termview)
 
