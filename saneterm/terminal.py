@@ -95,7 +95,11 @@ class Terminal(Gtk.Window):
         os.write(self.pty.master, line.encode("UTF-8"))
 
     def termios_ctrl(self, termview, cidx):
-        if cidx == termios.VEOF:
+        # termios ctrl keys are ignored if the cursor is not at the
+        # buffer position where the next character would appear.
+        if not termview.cursor_at_end():
+            return
+        elif cidx == termios.VEOF:
             termview.flush()
 
         # TODO: Employ some heuristic to cache tcgetattr result.

@@ -83,6 +83,12 @@ class TermView(Gtk.TextView):
 
         return cur.compare(out) == 0
 
+    def cursor_at_end(self):
+        cur = self._textbuffer.get_iter_at_offset(self._textbuffer.props.cursor_position)
+        end = self._textbuffer.get_iter_at_mark(self._last_mark)
+
+        return cur.compare(end) == 0
+
     def do_backspace(self):
         # If current position is output positon ignore backspace.
         if not self.cursor_at_out():
