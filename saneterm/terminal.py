@@ -70,6 +70,7 @@ class Terminal(Gtk.Window):
 
         bindings = input.KeyBindings(self.termview)
         bindings.add_bind("<ctrl>c", "termios-ctrlkey", termios.VINTR)
+        bindings.add_bind("<ctrl>z", "termios-ctrlkey", termios.VSUSP)
 
         self.add(self.termview)
 
