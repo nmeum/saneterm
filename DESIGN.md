@@ -70,11 +70,14 @@ enter. It does also have some caveats as keycodes are normally
 configured using `termios(3)`. As an example, it possible to bind
 `SIGINT` to a different keycode using `stty intr <keycode>` but since
 `saneterm` keybindings are defined separately it would not respect that
-setting. The `saneterm` handlers also need to query the `termios(3)`
-setting on each Gtk signal to determine the current control character,
-which should be send to the PTY, using `termios(3)`.  Additionally, the
-line buffer is bypassed on these signals and any data presently stored
-in it is never received by the application.
+setting. For the same reason, it is also difficult to support
+noncanoical mode as defined in `termios(3)`.
+
+The `saneterm` handlers also need to query the `termios(3)` setting on
+each Gtk signal to determine the current control character, which should
+be send to the PTY, using `termios(3)`.  Additionally, the line buffer
+is bypassed on these signals and any data presently stored in it is
+never received by the application.
 
 [9term man page]: https://9fans.github.io/plan9port/man/man1/9term.html
 [gtk textbuffer]: https://developer.gnome.org/gtk3/stable/GtkTextBuffer.html
