@@ -95,6 +95,7 @@ class TermView(Gtk.TextView):
     def cursor_at_end(self):
         return self.__cursor_at_mark(self._last_mark)
 
+    # XXX: Can maybe be removed in favor of do_delete_from_cursor.
     def do_backspace(self):
         # If current position is output positon ignore backspace.
         if not self.cursor_at_out():
@@ -109,6 +110,26 @@ class TermView(Gtk.TextView):
             self.flush()
         else:
             self._last_mark = buffer.create_mark(None, end, True)
+
+    def do_delete_from_cursor(self, type, count):
+        # If the type is GTK_DELETE_CHARS, GTK+ deletes the selection.
+        if type == Gtk.DeleteType.CHARS:
+            Gtk.TextView.do_delete_from_cursor(self, type, count)
+            return
+
+        buf = self._textbuffer
+        cur = buf.get_iter_at_offset(buf.props.cursor_position)
+        out = buf.get_iter_at_mark(self._last_output_mark)
+
+        # Only go backward by $count chars if there are enough
+        # characters in the buffer and the movement would not
+        # go beyond the last output point.
+        if cur.backward_chars(count):
+            return
+        elif cur.compare(out) != 1: # cur <= out
+            return
+
+        Gtk.TextView.do_delete_from_cursor(self, type, count)
 
     def __kill_after_output(self, textview):
         buffer = textview.get_buffer()
