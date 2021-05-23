@@ -3,6 +3,8 @@ import pty
 import os
 import codecs
 import termios
+import fcntl
+import struct
 
 import keys
 from termview import *
@@ -13,6 +15,7 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GLib
+from gi.repository import Pango
 
 NAME = "saneterm"
 TERM = "dumb"
@@ -67,6 +70,7 @@ class Terminal(Gtk.Window):
 
         self.termview.connect("new-user-input", self.user_input)
         self.termview.connect("termios-ctrlkey", self.termios_ctrl)
+        self.connect("size-allocate", self.update_size)
 
         bindings = keys.Bindings(self.termview)
         for key, idx in keys.CTRL.items():
@@ -77,6 +81,29 @@ class Terminal(Gtk.Window):
 
         scroll.add(self.termview)
         self.add(scroll)
+
+    def update_size(self, widget, rect):
+        # PTY must already be initialized
+        if self.pty.master == -1:
+            return
+
+        # Widget width/height in pixels, is later converted
+        # to rows/columns by dividing these values by the
+        # font width/height as determined by the PangoLayout.
+        width, height = widget.get_size()
+
+        ctx = self.termview.get_pango_context()
+        layout = Pango.Layout(ctx)
+        layout.set_markup(" ") # assumes monospace
+        fw, fh = layout.get_pixel_size()
+
+        rows = int(height / fh)
+        cols = int(width / fw)
+
+        # TODO: use tcsetwinsize() instead of the ioctl.
+        # See: https://github.com/python/cpython/pull/23686
+        ws = struct.pack('HHHH', rows, cols, width, height) # struct winsize
+        fcntl.ioctl(self.pty.master, termios.TIOCSWINSZ, ws)
 
     def handle_pty(self, source, tag, master):
         cond = source.query_unix_fd(tag)
