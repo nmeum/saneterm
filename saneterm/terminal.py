@@ -6,8 +6,8 @@ import termios
 import fcntl
 import struct
 
-import keys
-from termview import *
+from . import keys
+from .termview import *
 
 import gi
 gi.require_version("Gtk", "3.0")

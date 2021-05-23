@@ -62,7 +62,7 @@ If these are installed run the following command to install `saneterm`:
 
 	$ python3 setup.py install --optimize=1
 
-For development setups just run `python3 saneterm/__main__.py`.
+For development setups just run `python3 -msaneterm`.
 
 ## Usage
 

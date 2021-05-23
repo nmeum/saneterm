@@ -1,7 +1,7 @@
 import sys
 import argparse
 
-from terminal import *
+from .terminal import *
 
 def get_parser():
     parser = argparse.ArgumentParser()
