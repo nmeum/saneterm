@@ -29,6 +29,7 @@ class TermView(Gtk.TextView):
 
     def __init__(self):
         Gtk.TextView.__init__(self)
+        self.set_monospace(True)
 
         self._textbuffer = self.get_buffer()
         self._textbuffer.connect("end-user-action", self.__end_user_action)
