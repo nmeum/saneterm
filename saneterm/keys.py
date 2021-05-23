@@ -20,6 +20,7 @@ class Bindings():
             bind "<ctrl>a" { "move-input-start" () };
             bind "<ctrl>e" { "move-input-end" () };
             bind "<ctrl>h" { "backspace" () };
+            bind "<ctrl>j" { "insert-at-cursor" ("\\n") };
         }
 
         * {
