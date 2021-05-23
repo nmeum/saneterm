@@ -21,6 +21,9 @@ class Bindings():
             bind "<ctrl>e" { "move-input-end" () };
             bind "<ctrl>h" { "backspace" () };
             bind "<ctrl>j" { "insert-at-cursor" ("\\n") };
+
+            /* Since <ctrl>c is used for VINTR, unbind <ctrl>v */
+            unbind "<ctrl>v";
         }
 
         * {
