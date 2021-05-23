@@ -81,12 +81,18 @@ class TermView(Gtk.TextView):
         self._last_mark = self._last_mark
 
     def cursor_at_out(self):
+        if self._textbuffer.get_has_selection():
+            return False
+
         cur = self._textbuffer.get_iter_at_offset(self._textbuffer.props.cursor_position)
         out = self._textbuffer.get_iter_at_mark(self._last_output_mark)
 
         return cur.compare(out) == 0
 
     def cursor_at_end(self):
+        if self._textbuffer.get_has_selection():
+            return False
+
         cur = self._textbuffer.get_iter_at_offset(self._textbuffer.props.cursor_position)
         end = self._textbuffer.get_iter_at_mark(self._last_mark)
 
