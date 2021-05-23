@@ -80,23 +80,20 @@ class TermView(Gtk.TextView):
         self._last_output_mark = self._textbuffer.create_mark(None, end, True)
         self._last_mark = self._last_mark
 
-    def cursor_at_out(self):
+    def __cursor_at_mark(self, mark):
         if self._textbuffer.get_has_selection():
             return False
 
         cur = self._textbuffer.get_iter_at_offset(self._textbuffer.props.cursor_position)
-        out = self._textbuffer.get_iter_at_mark(self._last_output_mark)
+        other = self._textbuffer.get_iter_at_mark(mark)
 
-        return cur.compare(out) == 0
+        return cur.compare(other) == 0
+
+    def cursor_at_out(self):
+        return self.__cursor_at_mark(self._last_output_mark)
 
     def cursor_at_end(self):
-        if self._textbuffer.get_has_selection():
-            return False
-
-        cur = self._textbuffer.get_iter_at_offset(self._textbuffer.props.cursor_position)
-        end = self._textbuffer.get_iter_at_mark(self._last_mark)
-
-        return cur.compare(end) == 0
+        return self.__cursor_at_mark(self._last_mark)
 
     def do_backspace(self):
         # If current position is output positon ignore backspace.
