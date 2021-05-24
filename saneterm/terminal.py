@@ -147,10 +147,15 @@ class Terminal(Gtk.Window):
         self.hist_index = 0
 
     def history(self, termview, idx):
+        # Backup index and restore it if no entry with new index exists.
+        backup_index = self.hist_index
+
         self.hist_index += idx
         entry = self.hist.get_entry(self.pty.master, self.hist_index)
 
-        if not entry is None:
+        if entry is None:
+            self.hist_index = backup_index
+        else:
             self.termview.emit("kill-after-output")
             self.termview.emit("insert-at-cursor", entry)
 

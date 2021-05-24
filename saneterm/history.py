@@ -53,13 +53,17 @@ class History():
 
         self.__con.commit()
 
-    def get_entry(self, fd, relidx):
+    def get_entry(self, fd, offset):
         exe = self.__get_exec(fd)
 
+        # Select an entry by the given offset. If the offset exceeds the
+        # amount of available entries, select nothing and return None.
         self.__cur.execute("""
-                SELECT entry FROM history WHERE exe=:exe LIMIT 1 OFFSET
-                    (( SELECT count(*) FROM history WHERE exe=:exe ) - :relidx);
-                """, {"exe": exe, "relidx": relidx})
+                SELECT entry FROM history WHERE exe=:exe AND
+                    ( SELECT count(*) FROM history WHERE exe=:exe ) >= :offset
+                    LIMIT 1 OFFSET
+                    (( SELECT count(*) FROM history WHERE exe=:exe ) - :offset);
+                """, {"exe": exe, "offset": offset})
 
         res = self.__cur.fetchone()
         if res is None:
