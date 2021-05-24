@@ -109,6 +109,15 @@ stuck with Unix. In the Unix world potential solutions include
 CLI-based editors (e.g. [ed][wikipedia ed]) or network protocols
 tunneled over SSH connections (e.g.  [Emacs Tramp Mode][emacs tramp mode]).
 
+**Q:** How do I use pagers (e.g. `less(1)`) without support for TUIs?
+
+**A:** With `saneterm` pagers are not needed as paging functionality is
+implemented in the terminal emulator itself. For this reason, `saneterm`
+offers a scrollback buffer in which autoscrolling can be configured
+using the Gtk context menu. Furthermore, word wrapping can also be
+disabled using the same mechanism. Additional pager-like features (e.g.
+searching for a string in the buffer) are planned.
+
 **Q:** Why is this written in Python and not X?
 
 **A:** This software is presently just a silly prototype, Python is good
