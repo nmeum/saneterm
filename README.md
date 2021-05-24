@@ -92,6 +92,8 @@ following to your `gtk.css` configuration file located at
 		color: #d8d8d8;
 	}
 
+Keybindings can be configured using the same mechanism, see `keys.py`
+for the default keybindings.
 
 ## FAQ
 
