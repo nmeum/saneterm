@@ -3,6 +3,8 @@ import sqlite3
 
 from . import proc
 
+DEFSIZ = 1000
+SIZE_ENV = "HISTSIZE"
 HISTORY_FN = "history.db"
 
 class History():
@@ -19,7 +21,9 @@ class History():
 
         data_dir = os.path.join(data_dir, "saneterm")
         os.makedirs(data_dir, exist_ok=True)
+
         histfile = os.path.join(data_dir, HISTORY_FN)
+        self.histsize = int(os.environ[SIZE_ENV]) if SIZE_ENV in os.environ else DEFSIZ
 
         self.__con = sqlite3.connect(histfile)
         self.__cur = self.__con.cursor()
@@ -38,10 +42,19 @@ class History():
         elif entry[-1] == '\n':
             entry = entry[0:-1]
 
+        # Insert new entry into table and make sure the **total** amount
+        # of entries in the entire table does not exceed self.histsize.
+        # If this value is exceeded, remove the first (i.e. oldest) entries.
         self.__cur.execute("INSERT INTO history VALUES (?, ?)", (exe, entry))
-        self.__con.commit()
+        self.__cur.execute("""
+                DELETE FROM history WHERE ( SELECT count(*) FROM history ) > :max
+                    AND rowid IN (
+                        SELECT rowid FROM history ORDER BY rowid ASC LIMIT
+                            (( SELECT count(*) FROM history ) - :max )
+                    );
+                """, {"max": self.histsize});
 
-        # TODO: Delete old entries
+        self.__con.commit()
 
     def get_entry(self, fd, relidx):
         exe = self.__get_exec(fd)
