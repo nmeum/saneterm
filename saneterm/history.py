@@ -19,7 +19,8 @@ class History():
     """
 
     def __init__(self):
-        # XXX: Maybe consult os.environ["HISTFILE"]
+        # See https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
+        # Explicitly not using HISTFILE to avoid overwriting the shell's history.
         if "XDG_DATA_DIR" in os.environ:
             data_dir = os.environ["XDG_DATA_DIR"]
         else:
