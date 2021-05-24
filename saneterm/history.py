@@ -3,6 +3,8 @@ import sqlite3
 
 from . import proc
 
+# TODO: The SQL queries in this file may have some room for improvement.
+
 DEFSIZ = 1000
 SIZE_ENV = "HISTSIZE"
 HISTORY_FN = "history.db"
