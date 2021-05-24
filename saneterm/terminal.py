@@ -54,7 +54,10 @@ class PtySource(GLib.Source):
         return callback(self, self.tag, self.master)
 
 class Terminal(Gtk.Window):
-    enable_autoscroll = True
+    config = {
+        'autoscroll': True,
+        'wordwrap': True,
+    }
 
     def __init__(self, cmd):
         Gtk.Window.__init__(self, title=NAME)
@@ -65,7 +68,7 @@ class Terminal(Gtk.Window):
         self.pty.attach(None)
 
         self.termview = TermView()
-        self.termview.set_wrap_mode(Gtk.WrapMode(Gtk.WrapMode.WORD_CHAR))
+        self.update_wrapmode()
 
         # Block-wise reading from the PTY requires an incremental decoder.
         self.decoder = codecs.getincrementaldecoder('UTF-8')()
@@ -81,10 +84,14 @@ class Terminal(Gtk.Window):
             bindings.add_bind(key, "termios-ctrlkey", idx)
 
         self.scroll = Gtk.ScrolledWindow().new(None, None)
-        self.scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.ALWAYS)
+        self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.ALWAYS)
 
         self.scroll.add(self.termview)
         self.add(self.scroll)
+
+    def update_wrapmode(self):
+        mode = Gtk.WrapMode.WORD_CHAR if self.config['wordwrap'] else Gtk.WrapMode.NONE
+        self.termview.set_wrap_mode(mode)
 
     def update_size(self, widget, rect):
         # PTY must already be initialized
@@ -123,7 +130,7 @@ class Terminal(Gtk.Window):
         return GLib.SOURCE_CONTINUE
 
     def autoscroll(self, widget, rect):
-        if not self.enable_autoscroll:
+        if not self.config['autoscroll']:
             return
 
         # For some reason it is not possible to use .scroll_to_mark()
@@ -132,18 +139,22 @@ class Terminal(Gtk.Window):
         adj.set_value(adj.get_upper() - adj.get_page_size())
 
     def populate_popup(self, textview, popup):
-        def toggle_autoscroll(mitem):
-            self.enable_autoscroll = not self.enable_autoscroll
-
-        autoscroll = Gtk.MenuItem()
-        if self.enable_autoscroll:
-            autoscroll.set_label("Disable autoscroll")
-        else:
-            autoscroll.set_label("Enable autoscroll")
-        autoscroll.connect("activate", toggle_autoscroll)
+        def toggle_config(mitem, key):
+            self.config[key] = not self.config[key]
+            if key == 'wordwrap':
+                self.update_wrapmode()
 
         popup.append(Gtk.SeparatorMenuItem())
-        popup.append(autoscroll)
+        for key, enabled in self.config.items():
+            mitem = Gtk.MenuItem()
+            if enabled:
+                mitem.set_label(F'Disable {key}')
+            else:
+                mitem.set_label(F'Enable {key}')
+
+            mitem.connect('activate', toggle_config, key)
+            popup.append(mitem)
+
         popup.show_all()
 
     def user_input(self, termview, line):
