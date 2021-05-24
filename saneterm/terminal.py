@@ -140,7 +140,7 @@ class Terminal(Gtk.Window):
             autoscroll.set_label("Disable autoscroll")
         else:
             autoscroll.set_label("Enable autoscroll")
-        autoscroll.connect("select", toggle_autoscroll)
+        autoscroll.connect("activate", toggle_autoscroll)
 
         popup.append(Gtk.SeparatorMenuItem())
         popup.append(autoscroll)
