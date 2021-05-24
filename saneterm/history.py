@@ -34,13 +34,10 @@ class History():
         self.__con.close()
 
     def add_entry(self, fd, entry):
-        exe = self.__get_exec(fd)
-
-        # Strip trailing newline (if any).
+        entry = entry.rstrip('\n')
         if len(entry) == 0:
             return
-        elif entry[-1] == '\n':
-            entry = entry[0:-1]
+        exe = self.__get_exec(fd)
 
         # Insert new entry into table and make sure the **total** amount
         # of entries in the entire table does not exceed self.histsize.
