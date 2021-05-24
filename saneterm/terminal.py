@@ -70,17 +70,18 @@ class Terminal(Gtk.Window):
 
         self.termview.connect("new-user-input", self.user_input)
         self.termview.connect("termios-ctrlkey", self.termios_ctrl)
+        self.termview.connect("size-allocate", self.autoscroll)
         self.connect("configure-event", self.update_size)
 
         bindings = keys.Bindings(self.termview)
         for key, idx in keys.CTRL.items():
             bindings.add_bind(key, "termios-ctrlkey", idx)
 
-        scroll = Gtk.ScrolledWindow().new(None, None)
-        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.ALWAYS)
+        self.scroll = Gtk.ScrolledWindow().new(None, None)
+        self.scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.ALWAYS)
 
-        scroll.add(self.termview)
-        self.add(scroll)
+        self.scroll.add(self.termview)
+        self.add(self.scroll)
 
     def update_size(self, widget, rect):
         # PTY must already be initialized
@@ -117,6 +118,12 @@ class Terminal(Gtk.Window):
 
         self.termview.insert_data(self.decoder.decode(data))
         return GLib.SOURCE_CONTINUE
+
+    def autoscroll(self, widget, rect):
+        # For some reason it is not possible to use .scroll_to_mark()
+        # et cetera on the TextView contained in the ScrolledWindow.
+        adj = self.scroll.get_vadjustment()
+        adj.set_value(adj.get_upper() - adj.get_page_size())
 
     def user_input(self, termview, line):
         os.write(self.pty.master, line.encode("UTF-8"))
