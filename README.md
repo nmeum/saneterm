@@ -138,6 +138,7 @@ from other line-based editing features. Non-complete list:
 
 * https://github.com/withoutboats/notty
 * https://github.com/christianparpart/contour
+* https://notcurses.com/
 
 ## License
 
