@@ -73,7 +73,7 @@ class History():
         self.__cur.execute("""
                 SELECT entry FROM history WHERE exe=:exe AND
                     ( SELECT count(*) FROM history WHERE exe=:exe ) >= :offset
-                    LIMIT 1 OFFSET
+                    ORDER BY rowid ASC LIMIT 1 OFFSET
                     (( SELECT count(*) FROM history WHERE exe=:exe ) - :offset);
                 """, {"exe": exe, "offset": offset})
 
