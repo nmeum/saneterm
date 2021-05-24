@@ -7,6 +7,7 @@ import fcntl
 import struct
 
 from . import keys
+from .history import History
 from .termview import *
 
 import gi
@@ -63,6 +64,9 @@ class Terminal(Gtk.Window):
         Gtk.Window.__init__(self, title=NAME)
         self.set_name(NAME)
 
+        self.hist = History()
+        self.reset_history_index()
+
         self.pty = PtySource(cmd)
         self.pty.set_callback(self.handle_pty)
         self.pty.attach(None)
@@ -77,7 +81,9 @@ class Terminal(Gtk.Window):
         self.termview.connect("termios-ctrlkey", self.termios_ctrl)
         self.termview.connect("size-allocate", self.autoscroll)
         self.termview.connect("populate-popup", self.populate_popup)
+
         self.connect("configure-event", self.update_size)
+        self.connect("destroy", self.destroy)
 
         bindings = keys.Bindings(self.termview)
         for key, idx in keys.CTRL.items():
@@ -88,6 +94,14 @@ class Terminal(Gtk.Window):
 
         self.scroll.add(self.termview)
         self.add(self.scroll)
+
+        GObject.signal_new("history-entry", self.termview,
+                GObject.SIGNAL_ACTION, GObject.TYPE_NONE,
+                (GObject.TYPE_LONG,))
+        self.termview.connect("history-entry", self.history)
+
+    def destroy(self, widget):
+        self.hist.close()
 
     def update_wrapmode(self):
         mode = Gtk.WrapMode.WORD_CHAR if self.config['wordwrap'] else Gtk.WrapMode.NONE
@@ -129,6 +143,22 @@ class Terminal(Gtk.Window):
         self.termview.insert_data(self.decoder.decode(data))
         return GLib.SOURCE_CONTINUE
 
+    def reset_history_index(self):
+        self.hist_index = 0
+
+    def history(self, termview, idx):
+        # Backup index and restore it if no entry with new index exists.
+        backup_index = self.hist_index
+
+        self.hist_index += idx
+        entry = self.hist.get_entry(self.pty.master, self.hist_index)
+
+        if entry is None:
+            self.hist_index = backup_index
+        else:
+            self.termview.emit("kill-after-output")
+            self.termview.emit("insert-at-cursor", entry)
+
     def autoscroll(self, widget, rect):
         if not self.config['autoscroll']:
             return
@@ -155,6 +185,9 @@ class Terminal(Gtk.Window):
         popup.show_all()
 
     def user_input(self, termview, line):
+        self.hist.add_entry(self.pty.master, line)
+        self.reset_history_index()
+
         os.write(self.pty.master, line.encode("UTF-8"))
 
     def termios_ctrl(self, termview, cidx):

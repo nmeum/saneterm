@@ -24,6 +24,9 @@ class Bindings():
             bind "<ctrl>w" { "delete-from-cursor" (word-ends, -1) };
             bind "<ctrl>h" { "backspace" () };
 
+            bind "Up" { "history-entry" (1) };
+            bind "Down" { "history-entry" (-1) };
+
             /* Since <ctrl>c is used for VINTR, unbind <ctrl>v */
             unbind "<ctrl>v";
         }
