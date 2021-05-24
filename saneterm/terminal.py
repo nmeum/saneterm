@@ -70,7 +70,7 @@ class Terminal(Gtk.Window):
 
         self.termview.connect("new-user-input", self.user_input)
         self.termview.connect("termios-ctrlkey", self.termios_ctrl)
-        self.connect("size-allocate", self.update_size)
+        self.connect("configure-event", self.update_size)
 
         bindings = keys.Bindings(self.termview)
         for key, idx in keys.CTRL.items():
