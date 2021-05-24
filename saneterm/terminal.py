@@ -146,13 +146,10 @@ class Terminal(Gtk.Window):
 
         popup.append(Gtk.SeparatorMenuItem())
         for key, enabled in self.config.items():
-            mitem = Gtk.MenuItem()
-            if enabled:
-                mitem.set_label(F'Disable {key}')
-            else:
-                mitem.set_label(F'Enable {key}')
+            mitem = Gtk.CheckMenuItem(key.capitalize())
+            mitem.set_active(enabled)
 
-            mitem.connect('activate', toggle_config, key)
+            mitem.connect('toggled', toggle_config, key)
             popup.append(mitem)
 
         popup.show_all()
