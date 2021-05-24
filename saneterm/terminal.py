@@ -54,6 +54,8 @@ class PtySource(GLib.Source):
         return callback(self, self.tag, self.master)
 
 class Terminal(Gtk.Window):
+    enable_autoscroll = True
+
     def __init__(self, cmd):
         Gtk.Window.__init__(self, title=NAME)
         self.set_name(NAME)
@@ -71,6 +73,7 @@ class Terminal(Gtk.Window):
         self.termview.connect("new-user-input", self.user_input)
         self.termview.connect("termios-ctrlkey", self.termios_ctrl)
         self.termview.connect("size-allocate", self.autoscroll)
+        self.termview.connect("populate-popup", self.populate_popup)
         self.connect("configure-event", self.update_size)
 
         bindings = keys.Bindings(self.termview)
@@ -120,10 +123,28 @@ class Terminal(Gtk.Window):
         return GLib.SOURCE_CONTINUE
 
     def autoscroll(self, widget, rect):
+        if not self.enable_autoscroll:
+            return
+
         # For some reason it is not possible to use .scroll_to_mark()
         # et cetera on the TextView contained in the ScrolledWindow.
         adj = self.scroll.get_vadjustment()
         adj.set_value(adj.get_upper() - adj.get_page_size())
+
+    def populate_popup(self, textview, popup):
+        def toggle_autoscroll(mitem):
+            self.enable_autoscroll = not self.enable_autoscroll
+
+        autoscroll = Gtk.MenuItem()
+        if self.enable_autoscroll:
+            autoscroll.set_label("Disable autoscroll")
+        else:
+            autoscroll.set_label("Enable autoscroll")
+        autoscroll.connect("select", toggle_autoscroll)
+
+        popup.append(Gtk.SeparatorMenuItem())
+        popup.append(autoscroll)
+        popup.show_all()
 
     def user_input(self, termview, line):
         os.write(self.pty.master, line.encode("UTF-8"))
