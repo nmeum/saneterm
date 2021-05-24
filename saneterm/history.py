@@ -54,6 +54,11 @@ class History():
         self.__con.commit()
 
     def get_entry(self, fd, offset):
+        '''Select an entry by the given offset. The offset is
+           interpreted relative to the latest entry. That is,
+           an offset of zero would return the current entry and
+           an offset of one would return the previous entry. None
+           is returned if no entry with the given offset exists.'''
         exe = self.__get_exec(fd)
 
         # Select an entry by the given offset. If the offset exceeds the
