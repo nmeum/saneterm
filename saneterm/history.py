@@ -10,6 +10,10 @@ SIZE_ENV = "HISTSIZE"
 HISTORY_FN = "history.db"
 
 class History():
+    """History provides a single database for storing line-based editing
+       histories on a per-executable basis. The current executable is
+       determined using tcgetpgrp(3) on a given file descriptior."""
+
     __schema = """
         CREATE TABLE IF NOT EXISTS history (exe TEXT, entry TEXT)
     """
