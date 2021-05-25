@@ -161,9 +161,6 @@ class Terminal(Gtk.Window):
         self.hist_index = -1
 
     def history(self, termview, idx):
-        if self.hist_index is None:
-            self.reset_history_index()
-
         # Backup index and restore it if we hit the beginning of the history
         backup_index = self.hist_index
 
@@ -177,8 +174,9 @@ class Terminal(Gtk.Window):
                 self.hist_index = backup_index
                 return
             else:
-                # if we arrive at the present, just clear the line
-                self.hist_index = None
+                # we were going forward in time, but no newer entry
+                # was found. in this case we just clear the line
+                self.reset_history_index()
                 entry = ""
 
         self.termview.emit("kill-after-output")
