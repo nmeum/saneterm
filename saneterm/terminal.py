@@ -161,17 +161,28 @@ class Terminal(Gtk.Window):
         self.hist_index = -1
 
     def history(self, termview, idx):
-        # Backup index and restore it if no entry with new index exists.
+        if self.hist_index is None:
+            self.reset_history_index()
+
+        # Backup index and restore it if we hit the beginning of the history
         backup_index = self.hist_index
 
         self.hist_index += idx
         entry = self.hist.get_entry(self.pty.master, self.hist_index)
 
         if entry is None:
-            self.hist_index = backup_index
-        else:
-            self.termview.emit("kill-after-output")
-            self.termview.emit("insert-at-cursor", entry)
+            if idx > 0:
+                # we are going back in time. if there are no older
+                # entries, restore history index and bail out.
+                self.hist_index = backup_index
+                return
+            else:
+                # if we arrive at the present, just clear the line
+                self.hist_index = None
+                entry = ""
+
+        self.termview.emit("kill-after-output")
+        self.termview.emit("insert-at-cursor", entry)
 
     def autoscroll(self, widget, rect):
         if not self.config['autoscroll']:
