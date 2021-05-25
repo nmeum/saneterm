@@ -105,11 +105,21 @@ class Terminal(Gtk.Window):
         self.hist.close()
 
     def update_wrapmode(self):
-        mode = Gtk.WrapMode.WORD_CHAR if self.config['wordwrap'] else Gtk.WrapMode.NONE
-        self.termview.set_wrap_mode(mode)
+        # XXX: Need to set hscroll mode explicitly and cannot rely on
+        # AUTOMATIC, as hypenation may introduce a horizontal scrollbar
+        # otherwise. With Gtk+4.0 we can disable hypenation explicitly.
+        # See: https://gitlab.gnome.org/GNOME/gtk/-/issues/2384
+        if self.config['wordwrap']:
+            wmode = Gtk.WrapMode.WORD_CHAR
+            hscroll = Gtk.PolicyType.NEVER
+        else:
+            wmode = Gtk.WrapMode.NONE
+            hscroll = Gtk.PolicyType.AUTOMATIC
 
-        scroll_policy = Gtk.PolicyType.NEVER if self.config['wordwrap'] else Gtk.PolicyType.AUTOMATIC
-        self.scroll.set_policy(scroll_policy, self.scroll.get_policy()[1])
+        self.termview.set_wrap_mode(wmode)
+
+        _, vscroll = self.scroll.get_policy()
+        self.scroll.set_policy(hscroll, vscroll)
 
     def update_size(self, widget, rect):
         # PTY must already be initialized
