@@ -72,7 +72,6 @@ class Terminal(Gtk.Window):
         self.pty.attach(None)
 
         self.termview = TermView()
-        self.update_wrapmode()
 
         # Block-wise reading from the PTY requires an incremental decoder.
         self.decoder = codecs.getincrementaldecoder('UTF-8')()
@@ -95,6 +94,8 @@ class Terminal(Gtk.Window):
         self.scroll.add(self.termview)
         self.add(self.scroll)
 
+        self.update_wrapmode()
+
         GObject.signal_new("history-entry", self.termview,
                 GObject.SIGNAL_ACTION, GObject.TYPE_NONE,
                 (GObject.TYPE_LONG,))
@@ -106,6 +107,9 @@ class Terminal(Gtk.Window):
     def update_wrapmode(self):
         mode = Gtk.WrapMode.WORD_CHAR if self.config['wordwrap'] else Gtk.WrapMode.NONE
         self.termview.set_wrap_mode(mode)
+
+        scroll_policy = Gtk.PolicyType.NEVER if self.config['wordwrap'] else Gtk.PolicyType.AUTOMATIC
+        self.scroll.set_policy(scroll_policy, self.scroll.get_policy()[1])
 
     def update_size(self, widget, rect):
         # PTY must already be initialized

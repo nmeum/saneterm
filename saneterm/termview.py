@@ -28,6 +28,8 @@ class TermView(Gtk.TextView):
     """
 
     def __init__(self):
+        # TODO: set insert-hypens to false in GTK 4
+        # https://docs.gtk.org/gtk4/property.TextTag.insert-hyphens.html
         Gtk.TextView.__init__(self)
 
         self.set_monospace(True)
