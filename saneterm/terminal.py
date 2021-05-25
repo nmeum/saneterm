@@ -144,7 +144,7 @@ class Terminal(Gtk.Window):
         return GLib.SOURCE_CONTINUE
 
     def reset_history_index(self):
-        self.hist_index = 0
+        self.hist_index = -1
 
     def history(self, termview, idx):
         # Backup index and restore it if no entry with new index exists.

@@ -66,6 +66,9 @@ class History():
            an offset of zero would return the current entry and
            an offset of one would return the previous entry. None
            is returned if no entry with the given offset exists.'''
+        if (offset < 0):
+            return None
+
         exe = self.__get_exec(fd)
 
         # Select an entry by the given offset. If the offset exceeds the
@@ -73,8 +76,7 @@ class History():
         self.__cur.execute("""
                 SELECT entry FROM history WHERE exe=:exe AND
                     ( SELECT count(*) FROM history WHERE exe=:exe ) >= :offset
-                    ORDER BY rowid ASC LIMIT 1 OFFSET
-                    (( SELECT count(*) FROM history WHERE exe=:exe ) - :offset);
+                    ORDER BY rowid DESC LIMIT 1 OFFSET :offset;
                 """, {"exe": exe, "offset": offset})
 
         res = self.__cur.fetchone()
