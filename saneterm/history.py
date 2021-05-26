@@ -74,8 +74,7 @@ class History():
         # Select an entry by the given offset. If the offset exceeds the
         # amount of available entries, select nothing and return None.
         self.__cur.execute("""
-                SELECT entry FROM history WHERE exe=:exe AND
-                    ( SELECT count(*) FROM history WHERE exe=:exe ) >= :offset
+                SELECT entry FROM history WHERE exe=:exe
                     ORDER BY rowid DESC LIMIT 1 OFFSET :offset;
                 """, {"exe": exe, "offset": offset})
 
