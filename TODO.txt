@@ -1,8 +1,12 @@
+* History backwards search (ctrl+r)
+* Searching for string in current buffer
 * Support for **some** ANSI escape sequences
 	* Colors
 	* Bracketed paste mode
-* Pager replacement
-	* Plan 9 inspired scrolling support (autoscroll, …)
-	* Dialog to find text in current buffer
 * Basic support for raw mode
 * 9term-like file name completions using ctrl+f
+* Support of a ctrl+l screen clear feature and/or
+  scrolling beyond th end of the buffer like 9term supports
+* Limit total amount of lines stored in buffer, should also fix
+  issue with GtkTextView going black if too many lines have
+  accumulated
