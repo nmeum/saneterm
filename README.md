@@ -43,10 +43,10 @@ prototype and currently provides only the following features:
 
 * Full Unicode support
 * Support for readline-like line editing
+* Editing history support directly in the terminal emulator
 
 Planned features include:
 
-* Editing history support directly in the terminal emulator
 * Features to replace pagers (search for strings, …)
 * And more (see `TODO.txt`)
 

@@ -1,4 +1,3 @@
-* Terminal-global editing history?
 * Support for **some** ANSI escape sequences
 	* Colors
 	* Bracketed paste mode
