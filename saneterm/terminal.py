@@ -60,7 +60,7 @@ class Terminal(Gtk.Window):
         'wordwrap': True,
     }
 
-    def __init__(self, cmd):
+    def __init__(self, cmd, limit):
         Gtk.Window.__init__(self, title=NAME)
         self.set_name(NAME)
 
@@ -71,7 +71,7 @@ class Terminal(Gtk.Window):
         self.pty.set_callback(self.handle_pty)
         self.pty.attach(None)
 
-        self.termview = TermView()
+        self.termview = TermView(limit)
 
         # Block-wise reading from the PTY requires an incremental decoder.
         self.decoder = codecs.getincrementaldecoder('UTF-8')()
