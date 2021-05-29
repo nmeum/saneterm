@@ -7,6 +7,3 @@
 * 9term-like file name completions using ctrl+f
 * Support of a ctrl+l screen clear feature and/or
   scrolling beyond th end of the buffer like 9term supports
-* Limit total amount of lines stored in buffer, should also fix
-  issue with GtkTextView going black if too many lines have
-  accumulated
