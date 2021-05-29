@@ -4,6 +4,37 @@ gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 from gi.repository import GObject
 
+class LimitTextBuffer(Gtk.TextBuffer):
+    """
+    Buffer which stores a limit amount of lines. If the limit is -1
+    an unlimited amount of lines is stored. Old lines are deleted
+    automatically if the limit is exceeded.
+    """
+
+    def __init__(self, limit):
+        Gtk.TextBuffer.__init__(self)
+
+        if limit == -1:
+            return # unlimited
+
+        self.limit = limit
+        self.connect_after("insert-text", self.__insert_text)
+
+    def __insert_text(self, buffer, loc, text, len):
+        lines = buffer.get_line_count()
+        diff = lines - self.limit
+        if diff <= 0:
+            return
+
+        end = buffer.get_start_iter()
+        end.forward_lines(diff)
+
+        start = buffer.get_start_iter()
+        buffer.delete(start, end)
+
+        # Revalide the given iterator
+        loc.assign(buffer.get_end_iter())
+
 class TermView(Gtk.TextView):
     """
     TextView-based widget for line-based terminal emulators. The widget
@@ -27,16 +58,17 @@ class TermView(Gtk.TextView):
     to the application via the termios-ctrlkey signal.
     """
 
-    def __init__(self):
+    def __init__(self, limit=-1):
         # TODO: set insert-hypens to false in GTK 4
         # https://docs.gtk.org/gtk4/property.TextTag.insert-hyphens.html
         Gtk.TextView.__init__(self)
 
+        self._textbuffer = LimitTextBuffer(limit)
+        self._textbuffer.connect("end-user-action", self.__end_user_action)
+        self.set_buffer(self._textbuffer)
+
         self.set_monospace(True)
         self.set_input_hints(Gtk.InputHints.NO_SPELLCHECK | Gtk.InputHints.EMOJI)
-
-        self._textbuffer = self.get_buffer()
-        self._textbuffer.connect("end-user-action", self.__end_user_action)
 
         self._last_mark = self._textbuffer.create_mark(None,
                 self._textbuffer.get_end_iter(), True)
