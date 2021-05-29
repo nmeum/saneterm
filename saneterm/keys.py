@@ -17,6 +17,7 @@ class Bindings():
             bind "<ctrl>a" { "move-input-start" () };
             bind "<ctrl>e" { "move-input-end" () };
             bind "<ctrl>j" { "insert-at-cursor" ("\\n") };
+            bind "<ctrl>l" { "clear-view" () };
 
             bind "<ctrl>w" { "delete-from-cursor" (word-ends, -1) };
             bind "<ctrl>h" { "backspace" () };

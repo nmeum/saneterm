@@ -5,5 +5,3 @@
 	* Bracketed paste mode
 * Basic support for raw mode
 * 9term-like file name completions using ctrl+f
-* Support of a ctrl+l screen clear feature and/or
-  scrolling beyond th end of the buffer like 9term supports

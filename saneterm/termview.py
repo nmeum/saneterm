@@ -75,6 +75,7 @@ class TermView(Gtk.TextView):
             "kill-after-output": self.__kill_after_output,
             "move-input-start": self.__move_input_start,
             "move-input-end": self.__move_input_end,
+            "clear-view": self.__clear_view,
         }
 
         for signal in signals.items():
@@ -181,3 +182,12 @@ class TermView(Gtk.TextView):
 
         end = buffer.get_iter_at_mark(self._last_mark)
         buffer.place_cursor(end)
+
+    def __clear_view(self, textview):
+        buffer = textview.get_buffer()
+
+        end = buffer.get_iter_at_mark(self._last_output_mark)
+        off = end.get_visible_line_offset()
+        end.backward_chars(off)
+
+        buffer.delete(buffer.get_start_iter(), end)
