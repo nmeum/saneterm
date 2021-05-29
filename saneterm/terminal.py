@@ -68,6 +68,7 @@ class Terminal(Gtk.Window):
         self.reset_history_index()
 
         self.pty = PtySource(cmd)
+        self.pty.set_priority(GLib.PRIORITY_LOW)
         self.pty.set_callback(self.handle_pty)
         self.pty.attach(None)
 
