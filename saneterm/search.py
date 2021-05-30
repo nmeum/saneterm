@@ -6,12 +6,14 @@ class SearchBar(Gtk.SearchBar):
     BG_COLOR = "yellow"
     FG_COLOR = "black"
 
-    def __init__(self, buffer):
+    def __init__(self, view):
         Gtk.SearchBar.__init__(self)
-        self.__buffer = buffer
+
+        self.__view = view
+        self.__buffer = view.get_buffer()
 
         self.__match = None
-        self.__tag = buffer.create_tag("search-match",
+        self.__tag = self.__buffer.create_tag("search-match",
                 background=self.BG_COLOR,
                 foreground=self.FG_COLOR)
 
@@ -41,6 +43,7 @@ class SearchBar(Gtk.SearchBar):
         if self.__match:
             mstart, mend = self.__match
             buf.apply_tag(self.__tag, mstart, mend)
+            self.__view.scroll_to_iter(mstart, 0.1, False, 0.0, 0.0)
 
     def __search_changed(self, entry):
         self.__find_match(entry, self.__buffer.get_start_iter())

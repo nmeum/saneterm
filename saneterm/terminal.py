@@ -97,7 +97,7 @@ class Terminal(Gtk.Window):
         self.update_wrapmode()
         vbox.pack_start(self.scroll, True, True, 0)
 
-        self.search_bar = SearchBar(self.termview.get_buffer())
+        self.search_bar = SearchBar(self.termview)
         vbox.pack_start(self.search_bar, False, True, 0)
 
         GObject.signal_new("toggle-search", self.termview,
