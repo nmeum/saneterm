@@ -194,6 +194,7 @@ class TermView(Gtk.TextView):
     def __clear_view(self, textview):
         buffer = textview.get_buffer()
 
+        # XXX: This function breaks with multi-line prompts, etc.
         end = buffer.get_iter_at_mark(self._last_output_mark)
         off = end.get_visible_line_offset()
         end.backward_chars(off)
