@@ -82,6 +82,7 @@ class Terminal(Gtk.Window):
 
         self.connect("configure-event", self.update_size)
         self.connect("destroy", self.destroy)
+        self.connect_after("set-focus", self.focus)
 
         bindings = keys.Bindings(self.termview)
         for key, idx in keys.CTRL.items():
@@ -108,6 +109,14 @@ class Terminal(Gtk.Window):
                 GObject.SIGNAL_ACTION, GObject.TYPE_NONE,
                 (GObject.TYPE_LONG,))
         self.termview.connect("history-entry", self.history)
+
+    def focus(self, window, widget):
+        # If no widget is focused, focus the termview by default.
+        # This occurs, for instance, after closing the SearchBar.
+        #
+        # XXX: Is there a better way to do this?
+        if widget is None:
+            self.emit("set-focus", self.termview)
 
     def destroy(self, widget):
         self.hist.close()
