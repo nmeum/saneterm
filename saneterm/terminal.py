@@ -7,6 +7,7 @@ import fcntl
 import struct
 
 from . import keys
+from .search import SearchBar
 from .history import History
 from .termview import *
 
@@ -86,13 +87,22 @@ class Terminal(Gtk.Window):
         for key, idx in keys.CTRL.items():
             bindings.add_bind(key, "termios-ctrlkey", idx)
 
+        vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
+        self.add(vbox)
+
         self.scroll = Gtk.ScrolledWindow().new(None, None)
         self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.ALWAYS)
-
         self.scroll.add(self.termview)
-        self.add(self.scroll)
-
         self.update_wrapmode()
+        vbox.pack_start(self.scroll, True, True, 0)
+
+        self.search_bar = SearchBar(self.termview.get_buffer())
+        vbox.pack_start(self.search_bar, False, True, 0)
+
+        GObject.signal_new("toggle-search", self.termview,
+                GObject.SIGNAL_ACTION, GObject.TYPE_NONE,
+                ())
+        self.termview.connect("toggle-search", self.toggle_search, self.search_bar)
 
         GObject.signal_new("history-entry", self.termview,
                 GObject.SIGNAL_ACTION, GObject.TYPE_NONE,
@@ -154,6 +164,10 @@ class Terminal(Gtk.Window):
 
         self.termview.insert_data(self.decoder.decode(data))
         return GLib.SOURCE_CONTINUE
+
+    def toggle_search(self, termview, search_bar):
+        active = search_bar.get_search_mode()
+        search_bar.set_search_mode(not active)
 
     def reset_history_index(self):
         self.hist_index = -1
