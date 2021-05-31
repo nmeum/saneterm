@@ -1,7 +1,5 @@
 * History backwards search (ctrl+r)
-* Searching for string in current buffer
 * Support for **some** ANSI escape sequences
 	* Colors
 	* Bracketed paste mode
 * Basic support for raw mode
-* 9term-like file name completions using ctrl+f
