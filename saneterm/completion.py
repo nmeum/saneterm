@@ -65,7 +65,7 @@ class FileName():
             base = os.path.dirname(input)
             prefix = os.path.basename(input)
 
-            if not os.path.abspath(input):
+            if not os.path.isabs(input):
                 base = os.path.join(self.__cwd, base)
         else:
             base = self.__cwd
