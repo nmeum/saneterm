@@ -39,16 +39,13 @@ Silly, buggy, and incomplete prototype implementation.
 
 By focusing on line-based input in the terminal emulator a variety of
 things can be simplified and improved. `saneterm` is presently just a
-prototype and currently provides only the following features:
+prototype and provides basic implementations of the following features:
 
 * Full Unicode support
-* Support for readline-like line editing
+* Support for readline-like line editing keybindings
 * Editing history support directly in the terminal emulator
-
-Planned features include:
-
-* Features to replace pagers (search for strings, …)
-* And more (see `TODO.txt`)
+* File name completions
+* Pager-like text handling (scrolling, searching, …)
 
 ## Installation
 
