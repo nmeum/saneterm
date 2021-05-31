@@ -87,6 +87,7 @@ following to your `gtk.css` configuration file located at
 
 		background-color: #181818;
 		color: #d8d8d8;
+		caret-color: #d8d8d8; /* cursor color */
 	}
 
 Keybindings can be configured using the same mechanism, see `keys.py`
