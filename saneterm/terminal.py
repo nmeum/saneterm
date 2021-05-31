@@ -148,6 +148,12 @@ class Terminal(Gtk.Window):
         self.scroll.set_policy(hscroll, vscroll)
 
     def update_size(self, widget, rect):
+        # This function allows application running inside the terminal
+        # to retrieve the window size using the TIOCGWINSZ ioctl. This
+        # is for example used by ls(1) for multi column output. However,
+        # since TIOCGWINSZ assumes the terminal be built around a
+        # character grid we only provide a heuristic implementation.
+
         # PTY must already be initialized
         if self.pty.master == -1:
             return
