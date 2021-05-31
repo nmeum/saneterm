@@ -2,4 +2,7 @@
 * Support for **some** ANSI escape sequences
 	* Colors
 	* Bracketed paste mode
-* Basic support for raw mode
+* Provide some heuristic support for disabling echo
+	* Useful for entering passwords
+	* Also ensures that passwords don't show up in history
+	* 9term has a heuristic for this
