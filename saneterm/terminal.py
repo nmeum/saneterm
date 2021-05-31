@@ -7,6 +7,7 @@ import fcntl
 import struct
 
 from . import keys
+from . import proc
 from .search import SearchBar
 from .history import History
 from .termview import *
@@ -70,7 +71,7 @@ class Terminal(Gtk.Window):
         self.pty.set_callback(self.handle_pty)
         self.pty.attach(None)
 
-        self.termview = TermView(limit)
+        self.termview = TermView(self.complete, limit)
 
         # Block-wise reading from the PTY requires an incremental decoder.
         self.decoder = codecs.getincrementaldecoder('UTF-8')()
@@ -109,6 +110,14 @@ class Terminal(Gtk.Window):
                 GObject.SIGNAL_ACTION, GObject.TYPE_NONE,
                 (GObject.TYPE_LONG,))
         self.termview.connect("history-entry", self.history)
+
+    def complete(self, input):
+        # XXX: This could be cached as the CWD shouldn't
+        # change unless input is send to the child process.
+        cwd = proc.cwd(os.tcgetpgrp(self.pty.master))
+
+        f = completion.FileName(cwd)
+        return f.get_matches(input)
 
     def focus(self, window, widget):
         # If no widget is focused, focus the termview by default.

@@ -27,6 +27,8 @@ class Bindings():
             bind "Up" { "history-entry" (1) };
             bind "Down" { "history-entry" (-1) };
 
+            bind "Tab" { "tab-completion" () };
+
             /* Since <ctrl>c is used for VINTR, unbind <ctrl>v */
             unbind "<ctrl>v";
         }

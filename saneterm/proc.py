@@ -6,6 +6,12 @@ import os
 def __proc_dir(pid):
     return os.path.join("/proc", str(pid))
 
+def cwd(pid):
+    cwd = os.path.join(__proc_dir(pid), "cwd")
+    dest = os.readlink(cwd)
+
+    return os.path.abspath(dest)
+
 def executable(pid):
     exec = os.path.join(__proc_dir(pid), "exe")
     dest = os.readlink(exec)

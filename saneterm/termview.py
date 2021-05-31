@@ -1,6 +1,8 @@
 from gi.repository import Gtk
 from gi.repository import GObject
 
+from . import completion
+
 class LimitTextBuffer(Gtk.TextBuffer):
     """
     Buffer which stores a limit amount of lines. If the limit is -1
@@ -55,7 +57,7 @@ class TermView(Gtk.TextView):
     to the application via the termios-ctrlkey signal.
     """
 
-    def __init__(self, limit=-1):
+    def __init__(self, compfunc, limit=-1):
         # TODO: set insert-hypens to false in GTK 4
         # https://docs.gtk.org/gtk4/property.TextTag.insert-hyphens.html
         Gtk.TextView.__init__(self)
@@ -63,6 +65,8 @@ class TermView(Gtk.TextView):
         self._textbuffer = LimitTextBuffer(limit)
         self._textbuffer.connect("end-user-action", self.__end_user_action)
         self.set_buffer(self._textbuffer)
+
+        self._tabcomp = completion.TabComp(self._textbuffer, compfunc)
 
         self.set_monospace(True)
         self.set_input_hints(Gtk.InputHints.NO_SPELLCHECK | Gtk.InputHints.EMOJI)
@@ -76,6 +80,7 @@ class TermView(Gtk.TextView):
             "move-input-start": self.__move_input_start,
             "move-input-end": self.__move_input_end,
             "clear-view": self.__clear_view,
+            "tab-completion": self.__tabcomp,
         }
 
         for signal in signals.items():
@@ -138,10 +143,13 @@ class TermView(Gtk.TextView):
         end = self._textbuffer.get_end_iter()
 
         text = buffer.get_text(start, end, True)
-        if text == "\n":
+        if len(text) != 0 and text[-1] == "\n":
             self.flush()
         else:
             self._last_mark = buffer.create_mark(None, end, True)
+
+        # User entered new text → reset tab completion state machine
+        self._tabcomp.reset()
 
     def do_delete_from_cursor(self, type, count):
         # If the type is GTK_DELETE_CHARS, GTK+ deletes the selection.
@@ -191,3 +199,18 @@ class TermView(Gtk.TextView):
         end.backward_chars(off)
 
         buffer.delete(buffer.get_start_iter(), end)
+
+    def __tabcomp(self, textview):
+        buf = textview.get_buffer()
+        cur = buf.get_iter_at_offset(buf.props.cursor_position)
+
+        # Gtk.TextCharPredicate to find start of word to be completed.
+        fn = lambda x, _: str.isspace(x)
+
+        out = buf.get_iter_at_mark(self._last_output_mark)
+        if cur.backward_find_char(fn, None, out):
+            cur.forward_char()
+        else:
+            cur.assign(out)
+
+        self._tabcomp.next(cur)
