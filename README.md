@@ -81,13 +81,17 @@ For example, to change the color scheme and employed font. Add the
 following to your `gtk.css` configuration file located at
 `$XDG_CONFIG_HOME/gtk-3.0/gtk.css`:
 
-	#saneterm textview text {
-		font-size: 15px;
-		font-family: "Terminus";
+	#saneterm textview {
+		font-family: Terminus;
+		font-size: 16px;
+	}
 
+	#saneterm textview text {
 		background-color: #181818;
 		color: #d8d8d8;
-		caret-color: #d8d8d8; /* cursor color */
+
+		/* change cursor color too */
+		caret-color: #d8d8d8;
 	}
 
 Keybindings can be configured using the same mechanism, see `keys.py`
