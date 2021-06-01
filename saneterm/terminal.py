@@ -59,7 +59,7 @@ class Terminal(Gtk.Window):
         'wordwrap': True,
     }
 
-    def __init__(self, cmd, limit):
+    def __init__(self, cmd, limit=-1, vscrollbar=True):
         Gtk.Window.__init__(self, title=NAME)
         self.set_name(NAME)
 
@@ -97,6 +97,10 @@ class Terminal(Gtk.Window):
         self.scroll.add(self.termview)
         self.update_wrapmode()
         vbox.pack_start(self.scroll, True, True, 0)
+
+        if not vscrollbar:
+            vscroll = self.scroll.get_vscrollbar()
+            vscroll.hide()
 
         self.search_bar = SearchBar(self.termview)
         vbox.pack_start(self.search_bar, False, True, 0)
