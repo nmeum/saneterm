@@ -24,6 +24,9 @@ class Bindings():
             bind "<ctrl>w" { "delete-from-cursor" (word-ends, -1) };
             bind "<ctrl>h" { "backspace" () };
 
+            bind "<alt>a" { "toggle-config" ("autoscroll") };
+            bind "<alt>w" { "toggle-config" ("wordwrap") };
+
             bind "Up" { "history-entry" (1) };
             bind "Down" { "history-entry" (-1) };
 

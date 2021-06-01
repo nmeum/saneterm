@@ -107,6 +107,7 @@ class Terminal(Gtk.Window):
 
         signals = {
             "toggle-search": (),
+            "toggle-config": (GObject.TYPE_STRING,),
             "history-entry": (GObject.TYPE_LONG,),
         }
 
@@ -116,6 +117,7 @@ class Terminal(Gtk.Window):
                     args)
 
         self.termview.connect("toggle-search", self.toggle_search, self.search_bar)
+        self.termview.connect("toggle-config", self.toggle_config)
         self.termview.connect("history-entry", self.history)
 
     def complete(self, input):
@@ -234,18 +236,18 @@ class Terminal(Gtk.Window):
         adj = self.scroll.get_vadjustment()
         adj.set_value(adj.get_upper() - adj.get_page_size())
 
-    def populate_popup(self, textview, popup):
-        def toggle_config(mitem, key):
-            self.config[key] = not self.config[key]
-            if key == 'wordwrap':
-                self.update_wrapmode()
+    def toggle_config(self, widget, key):
+        self.config[key] = not self.config[key]
+        if key == 'wordwrap':
+            self.update_wrapmode()
 
+    def populate_popup(self, textview, popup):
         popup.append(Gtk.SeparatorMenuItem())
         for key, enabled in self.config.items():
             mitem = Gtk.CheckMenuItem(key.capitalize())
             mitem.set_active(enabled)
 
-            mitem.connect('toggled', toggle_config, key)
+            mitem.connect('toggled', self.toggle_config, key)
             popup.append(mitem)
 
         popup.show_all()
