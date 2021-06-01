@@ -83,8 +83,7 @@ class TermView(Gtk.TextView):
             "tab-completion": self.__tabcomp,
         }
 
-        for signal in signals.items():
-            name, func = signal
+        for name, func in signals.items():
             GObject.signal_new(name, self,
                     GObject.SIGNAL_ACTION, GObject.TYPE_NONE,
                     ())
