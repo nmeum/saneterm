@@ -105,14 +105,17 @@ class Terminal(Gtk.Window):
         self.search_bar = SearchBar(self.termview)
         vbox.pack_start(self.search_bar, False, True, 0)
 
-        GObject.signal_new("toggle-search", self.termview,
-                GObject.SIGNAL_ACTION, GObject.TYPE_NONE,
-                ())
-        self.termview.connect("toggle-search", self.toggle_search, self.search_bar)
+        signals = {
+            "toggle-search": (),
+            "history-entry": (GObject.TYPE_LONG,),
+        }
 
-        GObject.signal_new("history-entry", self.termview,
-                GObject.SIGNAL_ACTION, GObject.TYPE_NONE,
-                (GObject.TYPE_LONG,))
+        for name, args in signals.items():
+            GObject.signal_new(name, self.termview,
+                    GObject.SIGNAL_ACTION, GObject.TYPE_NONE,
+                    args)
+
+        self.termview.connect("toggle-search", self.toggle_search, self.search_bar)
         self.termview.connect("history-entry", self.history)
 
     def complete(self, input):
