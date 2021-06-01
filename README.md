@@ -117,8 +117,8 @@ tunneled over SSH connections (e.g.  [Emacs Tramp Mode][emacs tramp mode]).
 implemented in the terminal emulator itself. For this reason, `saneterm`
 offers a scrollback buffer in which autoscrolling can be configured
 using the Gtk context menu. Furthermore, word wrapping can also be
-disabled using the same mechanism. Additional pager-like features (e.g.
-searching for a string in the buffer) are planned.
+disabled using the same mechanism. A search feature is also implemented
+and can be activated using ctrl+f.
 
 **Q:** Why is this written in Python and not X?
 
