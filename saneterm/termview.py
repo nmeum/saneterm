@@ -144,8 +144,7 @@ class TermView(Gtk.TextView):
         text = buffer.get_text(start, end, True)
         if len(text) != 0 and text[-1] == "\n":
             self.flush()
-        else:
-            self._last_mark = buffer.create_mark(None, end, True)
+        self._last_mark = buffer.create_mark(None, end, True)
 
         # User entered new text → reset tab completion state machine
         self._tabcomp.reset()
