@@ -1,8 +1,15 @@
-* History backwards search (ctrl+r)
 * Support for **some** ANSI escape sequences
 	* Colors
-	* Bracketed paste mode
+	* Font modifiers (italic, bold, …)
 * Provide some heuristic support for disabling echo
 	* Useful for entering passwords
 	* Also ensures that passwords don't show up in history
 	* 9term has a heuristic for this
+* Fix use of ssh within saneterm
+	* ssh forces echo (see previous entry)
+* Improve completion support:
+	* Expand '~' in completions
+	* Somehow provide completions for executables in $PATH
+* Add history backwards search using ctrl+r
+* Make sure no input is lost in-between output points
+	* For example, when text is typed before the prompt is redrawn
