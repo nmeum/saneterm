@@ -90,4 +90,7 @@ class FileName():
                 name = name[len(prefix):]
                 matches.append(name)
 
+        # Ensure that shortest matches are suggested first
+        matches.sort(key=len)
+
         return matches
