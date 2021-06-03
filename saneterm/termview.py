@@ -1,4 +1,5 @@
 from gi.repository import Gtk
+from gi.repository import Gdk
 from gi.repository import GObject
 
 from . import completion
@@ -12,12 +13,31 @@ class LimitTextBuffer(Gtk.TextBuffer):
 
     def __init__(self, limit):
         Gtk.TextBuffer.__init__(self)
+        self._clipboard = Gtk.Clipboard.get(Gdk.SELECTION_PRIMARY)
 
         if limit == -1:
             return # unlimited
 
         self.limit = limit
         self.connect_after("insert-text", self.__insert_text)
+
+    def do_mark_set(self, loc, mark):
+        # Gtk only partially adheres to the freedesktop.org clipboard
+        # specification. If text is selected, this text is copied to the
+        # primary clipboard. However, if the user unselects the text by
+        # clicking somewhere else the clipboard is cleared. This has
+        # been a known bug in Gtk for over 12 years. The code here is a
+        # dirty workaround for this bug.
+        #
+        # See https://gitlab.gnome.org/GNOME/gtk/-/issues/317
+
+        selection = self.get_selection_bounds()
+        if selection:
+            start, end = selection
+            text = self.get_text(start, end, True)
+            self._clipboard.set_text(text, -1)
+        else:
+            Gtk.TextBuffer.do_mark_set(self, loc, mark)
 
     def __insert_text(self, buffer, loc, text, len):
         lines = buffer.get_line_count()
