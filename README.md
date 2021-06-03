@@ -120,6 +120,13 @@ using the Gtk context menu. Furthermore, word wrapping can also be
 disabled using the same mechanism. A search feature is also implemented
 and can be activated using ctrl+f.
 
+**Q:** How do I paste the primary clipboard when clicking the middle
+mouse button?
+
+**A:** Configure [gtk-enable-primary-paste][gtk primary paste] in
+`$XDG_CONFIG_HOME/gtk-3.0/settings.ini`. Since most terminal emulator do
+it this way, this may become the default in future `saneterm` versions.
+
 **Q:** Why is this written in Python and not X?
 
 **A:** This software is presently just a silly prototype, Python is good
@@ -174,3 +181,4 @@ with this program. If not, see <http://www.gnu.org/licenses/>.
 [plan9port web]: https://9fans.github.io/plan9port/
 [gtk css]: https://developer.gnome.org/gtk3/stable/chap-css-overview.html
 [dash web]: http://gondor.apana.org.au/~herbert/dash/
+[gtk primary paste]: https://developer.gnome.org/gtk3/stable/GtkSettings.html#GtkSettings--gtk-enable-primary-paste
