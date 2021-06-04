@@ -151,7 +151,6 @@ class TermView(Gtk.TextView):
     def cursor_at_end(self):
         return self.__cursor_at_mark(self._last_mark)
 
-    # XXX: Can maybe be removed in favor of do_delete_from_cursor.
     def do_backspace(self):
         # If current position is output positon ignore backspace.
         if not self.cursor_at_out():
@@ -170,21 +169,26 @@ class TermView(Gtk.TextView):
         self._tabcomp.reset()
 
     def do_delete_from_cursor(self, type, count):
-        # If the type is GTK_DELETE_CHARS, GTK+ deletes the selection.
-        if type == Gtk.DeleteType.CHARS:
-            Gtk.TextView.do_delete_from_cursor(self, type, count)
-            return
+        # XXX: Currently, this function only ensures that word movement
+        # don't move the cursor before the output point. Other movement
+        # types (e.g. paragraph movements) currently might still do so.
+        if type != Gtk.DeleteType.WORD_ENDS or count >= 0:
+            return Gtk.TextView.do_delete_from_cursor(self, type, count)
 
         buf = self._textbuffer
         cur = buf.get_iter_at_offset(buf.props.cursor_position)
         out = buf.get_iter_at_mark(self._last_output_mark)
 
-        # Only go backward by $count chars if there are enough
-        # characters in the buffer and the movement would not
-        # go beyond the last output point.
-        if cur.backward_chars(count):
+        # Only go backward by $count if there are enough characters
+        # in the buffer and the movement would not go beyond the
+        # last output point.
+        tgt = Gtk.TextIter.copy(cur)
+        if not tgt.backward_word_starts(0 - count):
             return
-        elif cur.compare(out) != 1: # cur <= out
+        elif tgt.compare(out) != 1: # tgt <= out
+            # XXX: For some reason adjusting counting and changing the
+            # type to Gtk.DeleteType.CHARS does not work → delete directly.
+            self._textbuffer.delete_interactive(out, cur, True)
             return
 
         Gtk.TextView.do_delete_from_cursor(self, type, count)
