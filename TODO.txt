@@ -1,15 +1,30 @@
 * Support for **some** ANSI escape sequences
 	* Colors
 	* Font modifiers (italic, bold, …)
+	* Also handle \r and \a properly
+		* Regarding \a: See gtk_widget_error_bell / gtk_window_beep
+* Use graphical IDE-like overlay for completions
+	* GtkEntryCompletion?
+* Improve completion support:
+	* Expand '~' in completions to $HOME
+	* Somehow provide completions for executables in $PATH
+	* Only allow completions when cursor is at end?
+* Add history backwards search using ctrl+r
+* Improve ctrl+f search support
+	* Maybe add graphical elements for next/previous match
+	* Add button to allow case-insensitive search
+	* Optionally(?) highlight all matches
 * Provide some heuristic support for disabling echo
 	* Useful for entering passwords
 	* Also ensures that passwords don't show up in history
 	* 9term has a heuristic for this
 * Fix use of ssh within saneterm
 	* ssh forces echo (see previous entry)
-* Improve completion support:
-	* Expand '~' in completions
-	* Somehow provide completions for executables in $PATH
-* Add history backwards search using ctrl+r
 * Make sure no input is lost in-between output points
 	* For example, when text is typed before the prompt is redrawn
+* <shift>Insert key binding (should paste primary)
+* When text is entered before output point, cursor_at_end doesn't work
+* Configure vertical scrollbar (and other stuff that may come up) via Gtk properties?
+	* Allows changing this setting via dconf-editor / gsettings
+	* How would you configure it without dconf-editor / gsettings?
+* autoscroll: Maybe only stop scrolling if text exceeds window size
