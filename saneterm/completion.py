@@ -61,6 +61,11 @@ class FileName():
         self.__cwd = cwd
 
     def get_matches(self, input):
+        # Preferably, we would expand ~ to $HOME on tab since the
+        # application may not expand ~ itself. However, the current
+        # completion setup just allows appending characters to the end.
+        input = os.path.expanduser(input)
+
         if input.find("/") != -1:
             base = os.path.dirname(input)
             prefix = os.path.basename(input)
