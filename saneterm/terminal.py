@@ -92,6 +92,9 @@ class Terminal(Gtk.Window):
         vbox = Gtk.Box.new(Gtk.Orientation.VERTICAL, 0)
         self.add(vbox)
 
+        self.search_bar = SearchBar(self.termview)
+        vbox.pack_start(self.search_bar, False, True, 0)
+
         self.scroll = Gtk.ScrolledWindow().new(None, None)
         self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.ALWAYS)
         self.scroll.add(self.termview)
@@ -101,9 +104,6 @@ class Terminal(Gtk.Window):
         if not vscrollbar:
             vscroll = self.scroll.get_vscrollbar()
             vscroll.hide()
-
-        self.search_bar = SearchBar(self.termview)
-        vbox.pack_start(self.search_bar, False, True, 0)
 
         signals = {
             "toggle-search": (),
