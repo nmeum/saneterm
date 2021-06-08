@@ -11,7 +11,6 @@
 	* Only allow completions when cursor is at end?
 * Add history backwards search using ctrl+r
 * Improve ctrl+f search support
-	* Maybe add graphical elements for next/previous match
 	* Add button to allow case-insensitive search
 	* Optionally(?) highlight all matches
 * Provide some heuristic support for disabling echo
