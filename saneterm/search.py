@@ -44,6 +44,7 @@ class SearchBar(Gtk.SearchBar):
         for dir in ["up", "down"]:
             button = Gtk.Button.new_from_icon_name(F"go-{dir}-symbolic", Gtk.IconSize.MENU)
             button.set_sensitive(False)
+            button.set_focus_on_click(False)
             button.connect("clicked", button_callback, dir)
 
             box.add(button)
