@@ -21,7 +21,6 @@
 	* ssh forces echo (see previous entry)
 * Make sure no input is lost in-between output points
 	* For example, when text is typed before the prompt is redrawn
-* <shift>Insert key binding (should paste primary)
 * When text is entered before output point, cursor_at_end doesn't work
 * Configure vertical scrollbar (and other stuff that may come up) via Gtk properties?
 	* Allows changing this setting via dconf-editor / gsettings

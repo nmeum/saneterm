@@ -31,6 +31,7 @@ class Bindings():
             bind "Down" { "history-entry" (-1) };
 
             bind "Tab" { "tab-completion" () };
+            bind "<shift>Insert" { "paste-primary" () };
 
             /* Since <ctrl>c is used for VINTR, unbind <ctrl>v */
             unbind "<ctrl>v";

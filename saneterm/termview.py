@@ -87,6 +87,7 @@ class TermView(Gtk.TextView):
         self._textbuffer.connect("end-user-action", self.__end_user_action)
         self.set_buffer(self._textbuffer)
 
+        self._clipboard = Gtk.Clipboard.get(Gdk.SELECTION_PRIMARY)
         self._tabcomp = completion.TabComp(self._textbuffer, compfunc)
 
         self.set_monospace(True)
@@ -102,6 +103,7 @@ class TermView(Gtk.TextView):
             "move-input-end": self.__move_input_end,
             "clear-view": self.__clear_view,
             "tab-completion": self.__tabcomp,
+            "paste-primary": self.__paste_primary,
         }
 
         for name, func in signals.items():
@@ -238,3 +240,9 @@ class TermView(Gtk.TextView):
             cur.assign(out)
 
         self._tabcomp.next(cur)
+
+    # See https://gitlab.gnome.org/GNOME/gtk/-/issues/352
+    def __paste_primary(self, textview):
+        buf = textview.get_buffer()
+        buf.paste_clipboard(self._clipboard, None,
+            textview.props.editable)
