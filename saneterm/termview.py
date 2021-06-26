@@ -4,11 +4,12 @@ from gi.repository import GObject
 
 from . import completion
 
-class LimitTextBuffer(Gtk.TextBuffer):
+class TermBuffer(Gtk.TextBuffer):
     """
     Buffer which stores a limit amount of lines. If the limit is -1
     an unlimited amount of lines is stored. Old lines are deleted
-    automatically if the limit is exceeded.
+    automatically if the limit is exceeded. Furthermore, the buffer
+    provides some facilities for more native copy/paste handling.
     """
 
     def __init__(self, limit):
@@ -82,7 +83,7 @@ class TermView(Gtk.TextView):
         # https://docs.gtk.org/gtk4/property.TextTag.insert-hyphens.html
         Gtk.TextView.__init__(self)
 
-        self._textbuffer = LimitTextBuffer(limit)
+        self._textbuffer = TermBuffer(limit)
         self._textbuffer.connect("end-user-action", self.__end_user_action)
         self.set_buffer(self._textbuffer)
 
