@@ -1,5 +1,4 @@
 import sys
-import pty
 import os
 import codecs
 import termios
@@ -8,10 +7,10 @@ import struct
 
 from . import keys
 from . import proc
+from . import pty
 from .search import SearchBar
 from .history import History
 from .termview import *
-from .ptyparser import PtyParser, PtyEventType
 
 from gi.repository import Gtk
 from gi.repository import Gdk
@@ -19,40 +18,6 @@ from gi.repository import GLib
 from gi.repository import Pango
 
 NAME = "saneterm"
-TERM = "dumb"
-
-class PtySource(GLib.Source):
-    master = -1
-
-    def __init__(self, cmd):
-        GLib.Source.__init__(self)
-        self.cmd = cmd
-        self.tag = None
-
-    def prepare(self):
-        if self.master != -1:
-            return False, -1
-
-        pid, self.master = pty.fork()
-        if pid == pty.CHILD:
-            # Terminal options enforced by saneterm.
-            # Most importantly, local echo is disabled. Instead we show
-            # characters on input directly in the GTK termview/TextBuffer.
-            os.system("stty -onlcr -echo")
-
-            os.environ["TERM"] = TERM
-            os.execvp(self.cmd[0], self.cmd)
-
-        events = GLib.IOCondition.IN|GLib.IOCondition.HUP
-        self.tag = self.add_unix_fd(self.master, events)
-
-        return False, -1
-
-    def check(self):
-        return False
-
-    def dispatch(self, callback, args):
-        return callback(self, self.tag, self.master)
 
 class Terminal(Gtk.Window):
     config = {
@@ -67,12 +32,12 @@ class Terminal(Gtk.Window):
         self.hist = History()
         self.reset_history_index()
 
-        self.pty = PtySource(cmd)
+        self.pty = pty.Source(cmd)
         self.pty.set_priority(GLib.PRIORITY_LOW)
         self.pty.set_callback(self.handle_pty)
         self.pty.attach(None)
 
-        self.pty_parser = PtyParser()
+        self.pty_parser = pty.Parser()
 
         self.termview = TermView(self.complete, limit)
 
@@ -201,13 +166,13 @@ class Terminal(Gtk.Window):
         decoded = self.decoder.decode(data)
 
         for (ev, data) in self.pty_parser.parse(decoded):
-            if ev is PtyEventType.TEXT:
+            if ev is pty.EventType.TEXT:
                 self.termview.insert_data(data)
-            elif ev is PtyEventType.BELL:
+            elif ev is pty.EventType.BELL:
                 self.termview.error_bell()
                 self.set_urgency_hint(True)
             else:
-                raise AssertionError("unknown PtyEventType")
+                raise AssertionError("unknown pty.EventType")
 
         return GLib.SOURCE_CONTINUE
 

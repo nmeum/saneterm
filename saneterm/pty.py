@@ -1,16 +1,55 @@
-from enum import Enum, auto
+import os
 
-class PtyEventType(Enum):
+from pty import fork
+from enum import Enum, auto
+from gi.repository import GLib
+
+TERM = "dumb"
+
+class Source(GLib.Source):
+    master = -1
+
+    def __init__(self, cmd):
+        GLib.Source.__init__(self)
+        self.cmd = cmd
+        self.tag = None
+
+    def prepare(self):
+        if self.master != -1:
+            return False, -1
+
+        pid, self.master = fork()
+        if pid == 0:
+            # Terminal options enforced by saneterm.
+            # Most importantly, local echo is disabled. Instead we show
+            # characters on input directly in the GTK termview/TextBuffer.
+            os.system("stty -onlcr -echo")
+
+            os.environ["TERM"] = TERM
+            os.execvp(self.cmd[0], self.cmd)
+
+        events = GLib.IOCondition.IN|GLib.IOCondition.HUP
+        self.tag = self.add_unix_fd(self.master, events)
+
+        return False, -1
+
+    def check(self):
+        return False
+
+    def dispatch(self, callback, args):
+        return callback(self, self.tag, self.master)
+
+class EventType(Enum):
     TEXT = auto()
     BELL = auto()
 
-class PtyParser(object):
+class Parser(object):
     """
     Parses a subset of special control sequences read from
     a pty device. It is somewhat high level: Given a decoded,
     proper Python string it will emit a series of events
     which just need to be reflected in the UI while any state
-    is tracked in the PtyParser object.
+    is tracked in the Parser object.
     """
     def __init__(self):
         # no state, yet
@@ -18,15 +57,15 @@ class PtyParser(object):
 
     def parse(self, input):
         """
-        Main interface of PtyParser. Given a proper decoded
+        Main interface of Parser. Given a proper decoded
         Python string , it yields a series of tuples of the
-        form (PtyEventType, payload) which the caller can
+        form (EventType, payload) which the caller can
         iterate through. Valid events are:
 
-        * PtyEventType.TEXT has a string slice as its payload
+        * EventType.TEXT has a string slice as its payload
           which should be appended to the terminal buffer as is.
 
-        * PtyEventType.BELL has no payload and indicates that
+        * EventType.BELL has no payload and indicates that
           the bell character '\a' was in the terminal input.
           This usually should trigger the machine to beep
           and/or the window to set the urgent flag.
@@ -56,7 +95,7 @@ class PtyParser(object):
             # relying of gtk's default behavior.
             if code == '\a':
                 flush_until = pos
-                special_ev = (PtyEventType.BELL, None)
+                special_ev = (EventType.BELL, None)
 
             pos += 1
 
@@ -66,7 +105,7 @@ class PtyParser(object):
 
             # only generate text event if it is non empty, …
             if flush_until != None and flush_until > start:
-                yield (PtyEventType.TEXT, input[start:flush_until])
+                yield (EventType.TEXT, input[start:flush_until])
 
             # … but advance as if we had flushed
             if flush_until != None:
