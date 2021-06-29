@@ -168,6 +168,12 @@ class Terminal(Gtk.Window):
         for (ev, data) in self.pty_parser.parse(decoded):
             if ev is pty.EventType.TEXT:
                 self.termview.insert_data(data)
+            elif ev is pty.EventType.NEWLINE:
+                self.termview.set_replace(False)
+                self.termview.insert_data("\n")
+            elif ev is pty.EventType.CARRIAGE_RETURN:
+                self.termview.goto_line_start()
+                self.termview.set_replace(True)
             elif ev is pty.EventType.BELL:
                 self.termview.error_bell()
                 self.set_urgency_hint(True)

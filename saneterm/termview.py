@@ -82,6 +82,7 @@ class TermView(Gtk.TextView):
         # TODO: set insert-hypens to false in GTK 4
         # https://docs.gtk.org/gtk4/property.TextTag.insert-hyphens.html
         Gtk.TextView.__init__(self)
+        self.__replace = False
 
         self._textbuffer = TermBuffer(limit)
         self._textbuffer.connect("end-user-action", self.__end_user_action)
@@ -122,11 +123,28 @@ class TermView(Gtk.TextView):
                 (GObject.TYPE_PYOBJECT,))
 
     def insert_data(self, str):
+        if self.__replace:
+            self.do_delete_from_cursor(Gtk.DeleteType.CHARS, len(str))
         self._textbuffer.insert(self._textbuffer.get_end_iter(), str)
 
         end = self._textbuffer.get_end_iter()
         self._last_mark = self._textbuffer.create_mark(None, end, True)
         self._last_output_mark = self._last_mark
+
+    def set_replace(self, value):
+        self.__replace = value
+        if not value: # FIXME
+            buffer = self.get_buffer()
+            buffer.place_cursor(buffer.get_end_iter())
+
+    def goto_line_start(self):
+        buffer = self.get_buffer()
+
+        lstart = buffer.get_end_iter()
+        lstart.set_line_offset(0)
+
+        self.__replace = True
+        buffer.place_cursor(lstart)
 
     def flush(self):
         end = self._textbuffer.get_end_iter()

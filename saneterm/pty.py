@@ -42,6 +42,8 @@ class Source(GLib.Source):
 class EventType(Enum):
     TEXT = auto()
     BELL = auto()
+    CARRIAGE_RETURN = auto()
+    NEWLINE = auto()
 
 class Parser(object):
     """
@@ -96,6 +98,12 @@ class Parser(object):
             if code == '\a':
                 flush_until = pos
                 special_ev = (EventType.BELL, None)
+            elif code == '\n':
+                flush_until = pos
+                special_ev = (EventType.NEWLINE, None)
+            elif code == '\r':
+                flush_until = pos
+                special_ev = (EventType.CARRIAGE_RETURN, None)
 
             pos += 1
 
