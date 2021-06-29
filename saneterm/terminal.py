@@ -11,6 +11,7 @@ from . import proc
 from .search import SearchBar
 from .history import History
 from .termview import *
+from .ptyparser import PtyParser, PtyEventType
 
 from gi.repository import Gtk
 from gi.repository import Gdk
@@ -70,6 +71,8 @@ class Terminal(Gtk.Window):
         self.pty.set_priority(GLib.PRIORITY_LOW)
         self.pty.set_callback(self.handle_pty)
         self.pty.attach(None)
+
+        self.pty_parser = PtyParser()
 
         self.termview = TermView(self.complete, limit)
 
@@ -195,7 +198,17 @@ class Terminal(Gtk.Window):
         if not data:
             raise AssertionError("expected data but did not receive any")
 
-        self.termview.insert_data(self.decoder.decode(data))
+        decoded = self.decoder.decode(data)
+
+        for (ev, data) in self.pty_parser.parse(decoded):
+            if ev is PtyEventType.TEXT:
+                self.termview.insert_data(data)
+            elif ev is PtyEventType.BELL:
+                self.termview.error_bell()
+                self.set_urgency_hint(True)
+            else:
+                raise AssertionError("unknown PtyEventType")
+
         return GLib.SOURCE_CONTINUE
 
     def toggle_search(self, termview, search_bar):
