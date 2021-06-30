@@ -123,6 +123,7 @@ class TermView(Gtk.TextView):
                 (GObject.TYPE_PYOBJECT,))
 
     def insert_data(self, str):
+        # TODO: Send newline character separately
         if self.__replace:
             insert = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
             if insert.ends_line():
