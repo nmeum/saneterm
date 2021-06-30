@@ -124,20 +124,20 @@ class TermView(Gtk.TextView):
 
     def insert_data(self, str):
         if self.__replace:
-            self.do_delete_from_cursor(Gtk.DeleteType.CHARS, len(str))
-        self._textbuffer.insert(self._textbuffer.get_end_iter(), str)
+            insert = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
+            if insert.ends_line():
+                self.__replace = False
+            else:
+                self.do_delete_from_cursor(Gtk.DeleteType.CHARS, len(str))
 
+        self._textbuffer.insert_at_cursor(str)
         end = self._textbuffer.get_end_iter()
         self._last_mark = self._textbuffer.create_mark(None, end, True)
         self._last_output_mark = self._last_mark
 
-    def set_replace(self, value):
-        self.__replace = value
-        if not value: # FIXME
-            buffer = self.get_buffer()
-            buffer.place_cursor(buffer.get_end_iter())
-
-    def goto_line_start(self):
+    def replace_line(self):
+        """Start replacing the current line and turn off replace mode when
+           the end of the line is reached, useful for implementing \r."""
         buffer = self.get_buffer()
 
         lstart = buffer.get_end_iter()
