@@ -174,6 +174,30 @@ class PositionedIterator(object):
             self.pos -= 1
             raise StopIteration
 
+def csi_parameter_byte(c):
+    """
+    Check if the given unicode character is a CSI sequence
+    parameter byte. See ECMA-48 (5th edition) Section 5.4.
+    """
+    cp = ord(c)
+    return cp >= 0x30 and cp <= 0x3f
+
+def csi_intermediate_byte(c):
+    """
+    Check if the given unicode character is a CSI sequence
+    intermediate byte. See ECMA-48 (5th edition) Section 5.4.
+    """
+    cp = ord(c)
+    return cp >= 0x20 and cp <= 0x2f
+
+def csi_final_byte(c):
+    """
+    Check if the given unicode character is a CSI sequence
+    final byte. See ECMA-48 (5th edition) Section 5.4.
+    """
+    cp = ord(c)
+    return cp >= 0x40 and cp <= 0x7e
+
 class Parser(object):
     """
     Parses a subset of special control sequences read from
@@ -200,6 +224,13 @@ class Parser(object):
           the bell character '\a' was in the terminal input.
           This usually should trigger the machine to beep
           and/or the window to set the urgent flag.
+
+        Parsed control sequences are guaranteed to never
+        appear in a TEXT event. This is also true for
+        escape sequences which don't cause an event to
+        be generated. This is true for all CSI escape
+        sequences at the moment which are filtered out
+        from saneterm's output in this way.
         """
 
         it = PositionedIterator(self.__leftover + input)
@@ -208,6 +239,11 @@ class Parser(object):
         # keep track of the start position of the slice
         # we want to emit as a TEXT event
         start = 0
+
+        # this is set by the parser before backtracking if
+        # an ANSI escape sequence should be ignored, e. g.
+        # if we don't support it
+        ignore_esc = False
 
         # we expect a decoded string as input,
         # so we don't need to handle incremental
@@ -228,6 +264,53 @@ class Parser(object):
             if code == '\a':
                 flush_until = it.pos
                 special_ev = (EventType.BELL, None)
+            elif code == '\033':
+                # ignore_esc can be set if we encounter a '\033'
+                # which is followed by a sequence we don't understand.
+                # In that case we'll jump back to the '\033', but just
+                # treat it as if it was an ordinary character.
+                if ignore_esc:
+                    ignore_esc = False
+                else:
+                    flush_until = it.pos
+
+                    # if parsing fails we'll return to this point
+                    it.waypoint()
+
+                    try:
+                        if it.next() == '[':
+                            # CSI sequence
+                            try:
+                                params = it.takewhile_greedy(csi_parameter_byte)
+                                inters = it.takewhile_greedy(csi_intermediate_byte)
+                                final = it.next()
+
+                                assert csi_final_byte(final)
+
+                            except AssertionError:
+                                # invalid CSI sequence, we'll render it as text for now
+                                ignore_esc = True
+
+                        else:
+                            # we only parse CSI sequences for now, all other
+                            # sequences will be rendered as text to the terminal.
+                            # This probably should change in the future since
+                            # we also want to filter out, e. g. OSC sequences
+                            ignore_esc = True
+
+                        # with only backtracks if the end of input is
+                        # reached, so we do need to do it explicitly here.
+                        if ignore_esc:
+                            it.backtrack()
+
+                    except StopIteration:
+                        # the full escape sequence wasn't contained in
+                        # this chunk of input, so we'll parse it next time.
+                        # Since we flush up to the escape sequence, we know
+                        # where it started. The parser loop will exit at the
+                        # end of this iteration because the iterator is
+                        # exhausted.
+                        self.__leftover = it.wrapped[flush_until:]
 
             # at the end of input, flush if we aren't already
             if flush_until == None and it.empty():
