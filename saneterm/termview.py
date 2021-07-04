@@ -121,8 +121,11 @@ class TermView(Gtk.TextView):
                 GObject.SIGNAL_RUN_LAST, GObject.TYPE_NONE,
                 (GObject.TYPE_PYOBJECT,))
 
-    def insert_data(self, str):
-        self._textbuffer.insert(self._textbuffer.get_end_iter(), str)
+    def insert_data(self, str, tag=None):
+        if tag is None:
+            self._textbuffer.insert(self._textbuffer.get_end_iter(), str)
+        else:
+            self._textbuffer.insert_with_tags(self._textbuffer.get_end_iter(), str, tag)
 
         end = self._textbuffer.get_end_iter()
         self._last_mark = self._textbuffer.create_mark(None, end, True)
