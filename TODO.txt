@@ -1,8 +1,13 @@
 * Support for **some** ANSI escape sequences
-	* Colors
-	* Font modifiers (italic, bold, …)
-	* Also handle \r and \a properly
-		* Regarding \a: See gtk_widget_error_bell / gtk_window_beep
+	* Also handle \r and \b properly
+	* Bracketed paste
+	* OSC sequences (see e. g. foot-ctlseqs(7))
+		* Setting the window title
+		* Setting the working directory of the terminal (useful if we
+		  want to support opening an instance in the same directory)
+		* URL markers
+		* Desktop notifications
+		* Clipboard interaction
 * Use graphical IDE-like overlay for completions
 	* GtkEntryCompletion?
 * Improve completion support:
