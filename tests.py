@@ -1,7 +1,10 @@
 import copy
 import unittest
 
+from saneterm.color import Color, ColorType
 from saneterm.pty import PositionedIterator
+
+from gi.repository import Gdk
 
 TEST_STRING = 'foo;bar'
 
@@ -91,6 +94,31 @@ class TestPositionedIterator(unittest.TestCase):
 
         # using take does not consume the next element!
         self.assertEqual(it1.pos, length - 1)
+
+class TestColor(unittest.TestCase):
+    def test_256_colors(self):
+        """
+        Check divmod based RGB value calculation against
+        256 color table generation as implemented in
+        XTerm's 256colres.pl.
+        """
+        def channel_val(c):
+            return (c * 40 + 55 if c > 0 else 0) / 255
+
+        for r in range(6):
+            for g in range(6):
+                for b in range(6):
+                    n = 16 + (r * 36) + (g * 6) + b
+
+                    expected = Gdk.RGBA(*map(channel_val, (r, g, b)))
+                    col = Color(ColorType.NUMBERED_256, n).to_gdk()
+
+                    self.assertTrue(
+                        expected.equal(col),
+                        'Color {}: expected: {}; got: {}'.format(
+                            n, expected.to_string(), col.to_string()
+                        )
+                    )
 
 if __name__ == '__main__':
     unittest.main()

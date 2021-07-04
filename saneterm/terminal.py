@@ -38,6 +38,8 @@ class Terminal(Gtk.Window):
         self.pty.attach(None)
 
         self.pty_parser = pty.Parser()
+        # gtk TextTag to use, generated from TEXT_STYLE events
+        self.text_insert_tag = None
 
         self.termview = TermView(self.complete, limit)
 
@@ -167,10 +169,12 @@ class Terminal(Gtk.Window):
 
         for (ev, data) in self.pty_parser.parse(decoded):
             if ev is pty.EventType.TEXT:
-                self.termview.insert_data(data)
+                self.termview.insert_data(data, self.text_insert_tag)
             elif ev is pty.EventType.BELL:
                 self.termview.error_bell()
                 self.set_urgency_hint(True)
+            elif ev is pty.EventType.TEXT_STYLE:
+                self.text_insert_tag = data.to_tag(self.termview.get_buffer())
             else:
                 raise AssertionError("unknown pty.EventType")
 

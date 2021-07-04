@@ -1,8 +1,10 @@
 import os
+import re
 
 from pty import fork
+from .color import Color, ColorType, BasicColor
 from enum import Enum, auto
-from gi.repository import GLib
+from gi.repository import GLib, Pango
 
 TERM = "dumb"
 
@@ -42,6 +44,40 @@ class Source(GLib.Source):
 class EventType(Enum):
     TEXT = auto()
     BELL = auto()
+    TEXT_STYLE = auto()
+
+class TextStyle(object):
+    def __init__(self):
+        self.reset_all()
+
+    def reset_all(self):
+        self.fg_color = None
+        self.bg_color = None
+        self.strikethrough = False
+        self.intensity = Pango.Weight.NORMAL
+        self.italic = False
+        self.underline = Pango.Underline.NONE
+        self.concealed = False
+
+    def to_tag(self, textbuffer):
+        keywords = {
+            'strikethrough' : self.strikethrough,
+            'underline'     : self.underline,
+            'weight'        : self.intensity,
+            'style'         : Pango.Style.ITALIC if self.italic else Pango.Style.NORMAL,
+            'invisible'     : self.concealed,
+        }
+
+        if self.fg_color is not None:
+            keywords['foreground_rgba'] = self.fg_color.to_gdk()
+
+        if self.bg_color is not None:
+            keywords['background_rgba'] = self.bg_color.to_gdk()
+
+        tag = textbuffer.create_tag(None, **keywords)
+
+        return tag
+
 
 class PositionedIterator(object):
     """
@@ -198,6 +234,68 @@ def csi_final_byte(c):
     cp = ord(c)
     return cp >= 0x40 and cp <= 0x7e
 
+def parse_extended_color(iterator):
+    """
+    Parse extended color sequences (CSI [ 38 and CSI [ 48).
+    Takes an iterator which has already consumed the initial
+    SGR sequence type argument and returns a Color.
+    On failure an AssertionError is raised.
+
+    Relevant standards:
+    * Definition of the SGR extended color escape sequence:
+      ITU-T Rec. T.416 | ISO/IEC 8613-6
+      https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-T.416-199303-I!!PDF-E&type=items
+    * Full definition of the colour specification including the “colour space id”:
+      ITU-T Rec. T.412 | ISO/IEC 8613-2
+      https://www.itu.int/rec/dologin_pub.asp?lang=e&id=T-REC-T.412-199303-I!!PDF-E&type=items
+    """
+    args = list(iterator)
+
+    if len(args) == 0:
+        raise AssertionError("too few arguments")
+
+    if args[0] == '5':
+        # 256 color
+        assert len(args) == 2
+
+        try:
+            return Color(
+                ColorType.NUMBERED_256,
+                int(args[1])
+            )
+        except ValueError:
+            raise AssertionError("unexpected non-integer")
+    elif args[0] == '2':
+        # truecolor
+        if len(args) == 4:
+            channels = tuple(args[1:4])
+        elif len(args) >= 5:
+            # TODO: handle color space id and tolerance values
+            channels = tuple(args[2:5])
+        else:
+            raise AssertionError("too few arguments")
+
+        try:
+            return Color(
+                ColorType.TRUECOLOR,
+                tuple(int(c) for c in channels)
+            )
+        except ValueError:
+            raise AssertionError("unexpected non-integer")
+    elif args[0] == '0':
+        # The standard specifies this as “implementation defined”,
+        # so we define this as color reset
+        return None
+    else:
+        # TODO: support
+        #
+        #   1   transparent
+        #   3   CMY
+        #   4   CMYK
+        #
+        # … but who needs these?
+        raise AssertionError("unsupported extended color")
+
 class Parser(object):
     """
     Parses a subset of special control sequences read from
@@ -209,6 +307,7 @@ class Parser(object):
     def __init__(self):
         # unparsed output left from the last call to parse
         self.__leftover = ''
+        self.__text_style = TextStyle()
 
     def parse(self, input):
         """
@@ -286,6 +385,135 @@ class Parser(object):
                                 final = it.next()
 
                                 assert csi_final_byte(final)
+
+                                if final == 'm':
+                                    # SGR (Select Graphic Rendition) sequence:
+                                    # any number of numbers separated by ';'
+                                    # which change the current text presentation.
+                                    # If the parameter string is empty, a single '0'
+                                    # is implied.
+                                    #
+                                    # We support a subset of the core SGR sequences
+                                    # as specified by ECMA-48. Most notably we also
+                                    # support the common additional bright color
+                                    # sequences. This also justifies not to implement
+                                    # the strange behavior of choosing brighter colors
+                                    # when the current text is bold.
+                                    #
+                                    # We also support ':' as a separator which is
+                                    # only necessary for extended color sequences
+                                    # as specified in ITU-T Rec. T.416 | ISO/IEC 8613-6
+                                    # (see also parse_extended_color()). Actually
+                                    # those sequences _must_ use colons and semicolons
+                                    # would be invalid. In reality, however, the
+                                    # incorrect usage of semicolons seems to be much
+                                    # more common. Thus we are extremely lenient and
+                                    # allow both ':' and ';' as well as a mix of both
+                                    # as separators.
+                                    args = re.split(r'[:;]', params)
+
+                                    # track if we support the used sequences,
+                                    # only emit an event if that is the case
+                                    supported = False
+
+                                    arg_it = iter(args)
+                                    for arg in arg_it:
+                                        if len(arg) == 0:
+                                            # empty implies 0
+                                            sgr_type = 0
+                                        else:
+                                            try:
+                                                sgr_type = int(arg)
+                                            except ValueError:
+                                                raise AssertionError("Invalid Integer")
+
+                                        this_supported = True
+                                        if sgr_type == 0:
+                                            self.__text_style.reset_all()
+                                        elif sgr_type == 1:
+                                            self.__text_style.intensity = Pango.Weight.BOLD
+                                        elif sgr_type == 2:
+                                            self.__text_style.intensity = Pango.Weight.THIN
+                                        elif sgr_type == 3:
+                                            self.__text_style.italic = True
+                                        elif sgr_type == 4:
+                                            self.__text_style.underline = Pango.Underline.SINGLE
+                                        elif sgr_type == 8:
+                                            self.__text_style.concealed = True
+                                        elif sgr_type == 9:
+                                            self.__text_style.strikethrough = True
+                                        elif sgr_type == 21:
+                                            self.__text_style.underline = Pango.Underline.DOUBLE
+                                        elif sgr_type == 22:
+                                            self.__text_style.intensity = Pango.Weight.NORMAL
+                                        elif sgr_type == 23:
+                                            # also theoretically should disable blackletter
+                                            self.__text_style.italic = False
+                                        elif sgr_type == 24:
+                                            self.__text_style.underline = Pango.Underline.NONE
+                                        elif sgr_type == 28:
+                                            self.__text_style.concealed = False
+                                        elif sgr_type == 29:
+                                            self.__text_style.strikethrough = False
+                                        elif sgr_type >= 30 and sgr_type <= 37:
+                                            self.__text_style.fg_color = Color(
+                                                ColorType.NUMBERED_8,
+                                                BasicColor(sgr_type - 30)
+                                            )
+                                        elif sgr_type == 38:
+                                            try:
+                                                self.__text_style.fg_color = parse_extended_color(arg_it)
+                                            except AssertionError:
+                                                this_supported = False
+                                        elif sgr_type == 39:
+                                            self.__text_style.fg_color = None
+                                        elif sgr_type >= 40 and sgr_type <= 47:
+                                            self.__text_style.bg_color = Color(
+                                                ColorType.NUMBERED_8,
+                                                BasicColor(sgr_type - 40)
+                                            )
+                                        elif sgr_type == 48:
+                                            try:
+                                                self.__text_style.bg_color = parse_extended_color(arg_it)
+                                            except AssertionError:
+                                                this_supported = False
+                                        elif sgr_type == 49:
+                                            self.__text_style.bg_color = None
+                                        elif sgr_type >= 90 and sgr_type <= 97:
+                                            self.__text_style.fg_color = Color(
+                                                ColorType.NUMBERED_8_BRIGHT,
+                                                BasicColor(sgr_type - 90)
+                                            )
+                                        elif sgr_type >= 100 and sgr_type <= 107:
+                                            self.__text_style.bg_color = Color(
+                                                ColorType.NUMBERED_8_BRIGHT,
+                                                BasicColor(sgr_type - 100)
+                                            )
+                                        else:
+                                            # Not supported:
+                                            #   5-6     blink
+                                            #   7       invert
+                                            #   10      default font
+                                            #   11-19   alternative font
+                                            #   20      blackletter font
+                                            #   25      disable blinking
+                                            #   26      proportional spacing
+                                            #   27      disable inversion
+                                            #   50      disable proportional spacing
+                                            #   51      framed
+                                            #   52      encircled
+                                            #   53      overlined (TODO: implement via GTK 4 TextTag)
+                                            #   54      neither framed nor encircled
+                                            #   55      not overlined
+                                            #   60-65   ideograms (TODO: find out what this is supposed to do)
+                                            #   58-59   underline color, non-standard
+                                            #   73-65   sub/superscript, non-standard (TODO: via scale and rise)
+                                            this_supported = False
+
+                                        supported = supported or this_supported
+
+                                    if supported:
+                                        special_ev = (EventType.TEXT_STYLE, self.__text_style)
 
                             except AssertionError:
                                 # invalid CSI sequence, we'll render it as text for now
