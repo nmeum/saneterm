@@ -114,6 +114,13 @@ class Color(object):
         self.type = t
         self.data = data
 
+    # TODO: can we prevent mutation of this object?
+    def __hash__(self):
+        return hash((self.type, self.data))
+
+    def __eq__(self, other):
+        return self.type == other.type and self.data == other.data
+
     def to_gdk(self):
         """
         Convert a Color into a Gdk.RGBA which TextTag accepts.

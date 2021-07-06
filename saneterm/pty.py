@@ -46,38 +46,51 @@ class EventType(Enum):
     BELL = auto()
     TEXT_STYLE = auto()
 
-class TextStyle(object):
-    def __init__(self):
-        self.reset_all()
+class TextStyleChange(Enum):
+    """
+    Each TextStyleChange describes a way in which escape
+    sequences may influence the way text is displayed.
+    Together with an additional value (True or False,
+    a color, an enum from Pango, …) a TextStyleChange
+    can represent the actual impact an escape sequence
+    has on the font rendering.
 
-    def reset_all(self):
-        self.fg_color = None
-        self.bg_color = None
-        self.strikethrough = False
-        self.intensity = Pango.Weight.NORMAL
-        self.italic = False
-        self.underline = Pango.Underline.NONE
-        self.concealed = False
+    The important invariant here is that all associated
+    represented changes are _mutually exclusive_:
+    E. g. (TextStyleChange.ITALIC, True) and
+    (TextStyleChange.ITALIC, False) can't be applied at
+    the same time — one will replace the other.
+    This invariant greatly simplifies state tracking.
+    """
 
-    def to_tag(self, textbuffer):
-        keywords = {
-            'strikethrough' : self.strikethrough,
-            'underline'     : self.underline,
-            'weight'        : self.intensity,
-            'style'         : Pango.Style.ITALIC if self.italic else Pango.Style.NORMAL,
-            'invisible'     : self.concealed,
-        }
-
-        if self.fg_color is not None:
-            keywords['foreground_rgba'] = self.fg_color.to_gdk()
-
-        if self.bg_color is not None:
-            keywords['background_rgba'] = self.bg_color.to_gdk()
-
-        tag = textbuffer.create_tag(None, **keywords)
-
-        return tag
-
+    # resets the display style to an arbitrary default
+    # No associated value
+    RESET = auto()
+    # Enables/disables italic text
+    # associated with a boolean
+    ITALIC = auto()
+    # Enables/disables text being crossed out
+    # associated with a boolean
+    STRIKETHROUGH = auto()
+    # Describes weight of the font to use
+    # associated with a Pango.Weight enum
+    WEIGHT = auto()
+    # Disables or enables an underline style
+    # associated with a Pango.Underline enum
+    UNDERLINE = auto()
+    # Hides/shows the text. If hidden, should
+    # not be readable, but in many implementations
+    # the text is still able to be copied.
+    # associated with a boolean
+    CONCEALED = auto()
+    # Sets the text's color or resets
+    # it to a default if None.
+    # associated with either None or a Color
+    FOREGROUND_COLOR = auto()
+    # Sets the text's background color or resets
+    # it to a default if None.
+    # associated with either None or a Color
+    BACKGROUND_COLOR = auto()
 
 class PositionedIterator(object):
     """
@@ -307,7 +320,6 @@ class Parser(object):
     def __init__(self):
         # unparsed output left from the last call to parse
         self.__leftover = ''
-        self.__text_style = TextStyle()
 
     def parse(self, input):
         """
@@ -352,9 +364,9 @@ class Parser(object):
             # from start to flush_until will be emitted as
             # a TEXT event
             flush_until = None
-            # if not None, will be yielded as is, but only
-            # after any necessary flushing
-            special_ev = None
+            # if not empty, each of its elements will be yield
+            # one by one, but only after any necessary flushing
+            special_evs = []
 
             # control characters flush before advancing pos
             # in order to not add them to the buffer -- we
@@ -362,7 +374,7 @@ class Parser(object):
             # relying of gtk's default behavior.
             if code == '\a':
                 flush_until = it.pos
-                special_ev = (EventType.BELL, None)
+                special_evs.append((EventType.BELL, None))
             elif code == '\033':
                 # ignore_esc can be set if we encounter a '\033'
                 # which is followed by a sequence we don't understand.
@@ -412,10 +424,6 @@ class Parser(object):
                                     # as separators.
                                     args = re.split(r'[:;]', params)
 
-                                    # track if we support the used sequences,
-                                    # only emit an event if that is the case
-                                    supported = False
-
                                     arg_it = iter(args)
                                     for arg in arg_it:
                                         if len(arg) == 0:
@@ -427,93 +435,111 @@ class Parser(object):
                                             except ValueError:
                                                 raise AssertionError("Invalid Integer")
 
-                                        this_supported = True
+                                        change_payload = None
+
+                                        # Not supported:
+                                        #   5-6     blink
+                                        #   7       invert
+                                        #   10      default font
+                                        #   11-19   alternative font
+                                        #   20      blackletter font
+                                        #   25      disable blinking
+                                        #   26      proportional spacing
+                                        #   27      disable inversion
+                                        #   50      disable proportional spacing
+                                        #   51      framed
+                                        #   52      encircled
+                                        #   53      overlined (TODO: implement via GTK 4 TextTag)
+                                        #   54      neither framed nor encircled
+                                        #   55      not overlined
+                                        #   60-65   ideograms (TODO: find out what this is supposed to do)
+                                        #   58-59   underline color, non-standard
+                                        #   73-65   sub/superscript, non-standard (TODO: via scale and rise)
                                         if sgr_type == 0:
-                                            self.__text_style.reset_all()
+                                            change_payload = (TextStyleChange.RESET, None)
                                         elif sgr_type == 1:
-                                            self.__text_style.intensity = Pango.Weight.BOLD
+                                            change_payload = (TextStyleChange.WEIGHT, Pango.Weight.BOLD)
                                         elif sgr_type == 2:
-                                            self.__text_style.intensity = Pango.Weight.THIN
+                                            change_payload = (TextStyleChange.WEIGHT, Pango.Weight.THIN)
                                         elif sgr_type == 3:
-                                            self.__text_style.italic = True
+                                            change_payload = (TextStyleChange.ITALIC, True)
                                         elif sgr_type == 4:
-                                            self.__text_style.underline = Pango.Underline.SINGLE
+                                            change_payload = (TextStyleChange.UNDERLINE, Pango.Underline.SINGLE)
                                         elif sgr_type == 8:
-                                            self.__text_style.concealed = True
+                                            change_payload = (TextStyleChange.CONCEALED, True)
                                         elif sgr_type == 9:
-                                            self.__text_style.strikethrough = True
+                                            change_payload = (TextStyleChange.STRIKETHROUGH, True)
                                         elif sgr_type == 21:
-                                            self.__text_style.underline = Pango.Underline.DOUBLE
+                                            change_payload = (TextStyleChange.UNDERLINE, Pango.Underline.DOUBLE)
                                         elif sgr_type == 22:
-                                            self.__text_style.intensity = Pango.Weight.NORMAL
+                                            change_payload = (TextStyleChange.WEIGHT, Pango.Weight.NORMAL)
                                         elif sgr_type == 23:
                                             # also theoretically should disable blackletter
-                                            self.__text_style.italic = False
+                                            change_payload = (TextStyleChange.ITALIC, False)
                                         elif sgr_type == 24:
-                                            self.__text_style.underline = Pango.Underline.NONE
+                                            change_payload = (TextStyleChange.UNDERLINE, Pango.Underline.NONE)
                                         elif sgr_type == 28:
-                                            self.__text_style.concealed = False
+                                            change_payload = (TextStyleChange.CONCEALED, False)
                                         elif sgr_type == 29:
-                                            self.__text_style.strikethrough = False
+                                            change_payload = (TextStyleChange.STRIKETHROUGH, False)
                                         elif sgr_type >= 30 and sgr_type <= 37:
-                                            self.__text_style.fg_color = Color(
-                                                ColorType.NUMBERED_8,
-                                                BasicColor(sgr_type - 30)
+                                            change_payload = (
+                                                TextStyleChange.FOREGROUND_COLOR,
+                                                Color(
+                                                    ColorType.NUMBERED_8,
+                                                    BasicColor(sgr_type - 30)
+                                                )
                                             )
                                         elif sgr_type == 38:
                                             try:
-                                                self.__text_style.fg_color = parse_extended_color(arg_it)
+                                                change_payload = (
+                                                    TextStyleChange.FOREGROUND_COLOR,
+                                                    parse_extended_color(arg_it)
+                                                )
                                             except AssertionError:
-                                                this_supported = False
+                                                # TODO: maybe fail here?
+                                                pass
                                         elif sgr_type == 39:
-                                            self.__text_style.fg_color = None
+                                            change_payload = (TextStyleChange.FOREGROUND_COLOR, None)
                                         elif sgr_type >= 40 and sgr_type <= 47:
-                                            self.__text_style.bg_color = Color(
-                                                ColorType.NUMBERED_8,
-                                                BasicColor(sgr_type - 40)
+                                            change_payload = (
+                                                TextStyleChange.BACKGROUND_COLOR,
+                                                Color(
+                                                    ColorType.NUMBERED_8,
+                                                    BasicColor(sgr_type - 40)
+                                                )
                                             )
                                         elif sgr_type == 48:
                                             try:
-                                                self.__text_style.bg_color = parse_extended_color(arg_it)
+                                                change_payload = (
+                                                    TextStyleChange.BACKGROUND_COLOR,
+                                                    parse_extended_color(arg_it)
+                                                )
                                             except AssertionError:
-                                                this_supported = False
+                                                # TODO: maybe fail here?
+                                                pass
                                         elif sgr_type == 49:
-                                            self.__text_style.bg_color = None
+                                            change_payload = (TextStyleChange.BACKGROUND_COLOR, None)
                                         elif sgr_type >= 90 and sgr_type <= 97:
-                                            self.__text_style.fg_color = Color(
-                                                ColorType.NUMBERED_8_BRIGHT,
-                                                BasicColor(sgr_type - 90)
+                                            change_payload = (
+                                                TextStyleChange.FOREGROUND_COLOR,
+                                                Color(
+                                                    ColorType.NUMBERED_8_BRIGHT,
+                                                    BasicColor(sgr_type - 90)
+                                                )
                                             )
                                         elif sgr_type >= 100 and sgr_type <= 107:
-                                            self.__text_style.bg_color = Color(
-                                                ColorType.NUMBERED_8_BRIGHT,
-                                                BasicColor(sgr_type - 100)
+                                            change_payload = (
+                                                TextStyleChange.BACKGROUND_COLOR,
+                                                Color(
+                                                    ColorType.NUMBERED_8_BRIGHT,
+                                                    BasicColor(sgr_type - 100)
+                                                )
                                             )
-                                        else:
-                                            # Not supported:
-                                            #   5-6     blink
-                                            #   7       invert
-                                            #   10      default font
-                                            #   11-19   alternative font
-                                            #   20      blackletter font
-                                            #   25      disable blinking
-                                            #   26      proportional spacing
-                                            #   27      disable inversion
-                                            #   50      disable proportional spacing
-                                            #   51      framed
-                                            #   52      encircled
-                                            #   53      overlined (TODO: implement via GTK 4 TextTag)
-                                            #   54      neither framed nor encircled
-                                            #   55      not overlined
-                                            #   60-65   ideograms (TODO: find out what this is supposed to do)
-                                            #   58-59   underline color, non-standard
-                                            #   73-65   sub/superscript, non-standard (TODO: via scale and rise)
-                                            this_supported = False
 
-                                        supported = supported or this_supported
+                                        if change_payload != None:
+                                            special_evs.append((EventType.TEXT_STYLE, change_payload))
 
-                                    if supported:
-                                        special_ev = (EventType.TEXT_STYLE, self.__text_style)
 
                             except AssertionError:
                                 # invalid CSI sequence, we'll render it as text for now
@@ -552,5 +578,6 @@ class Parser(object):
             if flush_until != None:
                 start = it.pos + 1
 
-            if special_ev != None:
-                yield special_ev
+            if len(special_evs) > 0:
+                for ev in special_evs:
+                    yield ev
