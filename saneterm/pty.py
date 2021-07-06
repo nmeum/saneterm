@@ -264,50 +264,57 @@ def parse_extended_color(iterator):
     """
     args = list(iterator)
 
-    if len(args) == 0:
-        raise AssertionError("too few arguments")
+    try:
+        if args[0] == '5':
+            # 256 color
+            assert len(args) == 2
 
-    if args[0] == '5':
-        # 256 color
-        assert len(args) == 2
-
-        try:
             return Color(
                 ColorType.NUMBERED_256,
                 int(args[1])
             )
-        except ValueError:
-            raise AssertionError("unexpected non-integer")
-    elif args[0] == '2':
-        # truecolor
-        if len(args) == 4:
-            channels = tuple(args[1:4])
-        elif len(args) >= 5:
-            # TODO: handle color space id and tolerance values
-            channels = tuple(args[2:5])
-        else:
-            raise AssertionError("too few arguments")
+        elif args[0] == '2':
+            # truecolor
+            if len(args) == 4:
+                channels = tuple(args[1:4])
+            elif len(args) >= 5:
+                # TODO: handle color space id and tolerance values
+                channels = tuple(args[2:5])
+            else:
+                raise AssertionError("too few arguments")
 
-        try:
             return Color(
                 ColorType.TRUECOLOR,
                 tuple(int(c) for c in channels)
             )
-        except ValueError:
-            raise AssertionError("unexpected non-integer")
-    elif args[0] == '0':
-        # The standard specifies this as “implementation defined”,
-        # so we define this as color reset
-        return None
-    else:
-        # TODO: support
-        #
-        #   1   transparent
-        #   3   CMY
-        #   4   CMYK
-        #
-        # … but who needs these?
-        raise AssertionError("unsupported extended color")
+        elif args[0] == '0':
+            # The standard specifies this as “implementation defined”,
+            # so we define this as color reset
+            return None
+        else:
+            # TODO: support
+            #
+            #   1   transparent
+            #   3   CMY
+            #   4   CMYK
+            #
+            # … but who needs these?
+            raise AssertionError("unsupported extended color")
+
+    # convert a few exceptions that can happen while parsing
+    # into AssertionErrors to indicate that they are
+    # “expected” parse failures
+    except IndexError:
+        # args[0] out of range
+        raise AssertionError("too few arguments")
+
+    except TypeError:
+        # raised in Color.__init__()
+        raise AssertionError("malformed color")
+
+    except ValueError:
+        # raised by usage of int()
+        raise AssertionError("unexpected non-integer")
 
 
 def parse_sgr_sequence(params, special_evs):
