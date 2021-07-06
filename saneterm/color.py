@@ -14,7 +14,7 @@ class BasicColor(Enum):
     WHITE = 7
 
 # colors are (almost) the same as XTerm's default ones,
-# see X11's rgb.txt for the RGB values
+# see https://en.wikipedia.org/wiki/X11_color_names for values
 BASIC_COLOR_NAMES_REGULAR = {
     BasicColor.BLACK   : "black",
     BasicColor.RED     : "red3",
