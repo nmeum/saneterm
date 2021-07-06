@@ -309,6 +309,171 @@ def parse_extended_color(iterator):
         # … but who needs these?
         raise AssertionError("unsupported extended color")
 
+
+def parse_sgr_sequence(params, special_evs):
+    """
+    SGR (Select Graphic Rendition) sequence:
+    any number of numbers separated by ';'
+    which change the current text presentation.
+    If the parameter string is empty, a single '0'
+    is implied.
+
+    We support a subset of the core SGR sequences
+    as specified by ECMA-48. Most notably we also
+    support the common additional bright color
+    sequences. This also justifies not to implement
+    the strange behavior of choosing brighter colors
+    when the current text is bold.
+
+    We also support ':' as a separator which is
+    only necessary for extended color sequences
+    as specified in ITU-T Rec. T.416 | ISO/IEC 8613-6
+    (see also parse_extended_color()). Actually
+    those sequences _must_ use colons and semicolons
+    would be invalid. In reality, however, the
+    incorrect usage of semicolons seems to be much
+    more common. Thus we are extremely lenient and
+    allow both ':' and ';' as well as a mix of both
+    as separators.
+    """
+    args = re.split(r'[:;]', params)
+
+    arg_it = iter(args)
+    for arg in arg_it:
+        if len(arg) == 0:
+            # empty implies 0
+            sgr_type = 0
+        else:
+            try:
+                sgr_type = int(arg)
+            except ValueError:
+                raise AssertionError("Invalid Integer")
+
+        change_payload = None
+
+        # Not supported:
+        #   5-6     blink
+        #   7       invert
+        #   10      default font
+        #   11-19   alternative font
+        #   20      blackletter font
+        #   25      disable blinking
+        #   26      proportional spacing
+        #   27      disable inversion
+        #   50      disable proportional spacing
+        #   51      framed
+        #   52      encircled
+        #   53      overlined (TODO: implement via GTK 4 TextTag)
+        #   54      neither framed nor encircled
+        #   55      not overlined
+        #   60-65   ideograms (TODO: find out what this is supposed to do)
+        #   58-59   underline color, non-standard
+        #   73-65   sub/superscript, non-standard (TODO: via scale and rise)
+        if sgr_type == 0:
+            change_payload = (TextStyleChange.RESET, None)
+        elif sgr_type == 1:
+            change_payload = (TextStyleChange.WEIGHT, Pango.Weight.BOLD)
+        elif sgr_type == 2:
+            change_payload = (TextStyleChange.WEIGHT, Pango.Weight.THIN)
+        elif sgr_type == 3:
+            change_payload = (TextStyleChange.ITALIC, True)
+        elif sgr_type == 4:
+            change_payload = (TextStyleChange.UNDERLINE, Pango.Underline.SINGLE)
+        elif sgr_type == 8:
+            change_payload = (TextStyleChange.CONCEALED, True)
+        elif sgr_type == 9:
+            change_payload = (TextStyleChange.STRIKETHROUGH, True)
+        elif sgr_type == 21:
+            change_payload = (TextStyleChange.UNDERLINE, Pango.Underline.DOUBLE)
+        elif sgr_type == 22:
+            change_payload = (TextStyleChange.WEIGHT, Pango.Weight.NORMAL)
+        elif sgr_type == 23:
+            # also theoretically should disable blackletter
+            change_payload = (TextStyleChange.ITALIC, False)
+        elif sgr_type == 24:
+            change_payload = (TextStyleChange.UNDERLINE, Pango.Underline.NONE)
+        elif sgr_type == 28:
+            change_payload = (TextStyleChange.CONCEALED, False)
+        elif sgr_type == 29:
+            change_payload = (TextStyleChange.STRIKETHROUGH, False)
+        elif sgr_type >= 30 and sgr_type <= 37:
+            change_payload = (
+                TextStyleChange.FOREGROUND_COLOR,
+                Color(
+                    ColorType.NUMBERED_8,
+                    BasicColor(sgr_type - 30)
+                )
+            )
+        elif sgr_type == 38:
+            try:
+                change_payload = (
+                    TextStyleChange.FOREGROUND_COLOR,
+                    parse_extended_color(arg_it)
+                )
+            except AssertionError:
+                # TODO: maybe fail here?
+                pass
+        elif sgr_type == 39:
+            change_payload = (TextStyleChange.FOREGROUND_COLOR, None)
+        elif sgr_type >= 40 and sgr_type <= 47:
+            change_payload = (
+                TextStyleChange.BACKGROUND_COLOR,
+                Color(
+                    ColorType.NUMBERED_8,
+                    BasicColor(sgr_type - 40)
+                )
+            )
+        elif sgr_type == 48:
+            try:
+                change_payload = (
+                    TextStyleChange.BACKGROUND_COLOR,
+                    parse_extended_color(arg_it)
+                )
+            except AssertionError:
+                # TODO: maybe fail here?
+                pass
+        elif sgr_type == 49:
+            change_payload = (TextStyleChange.BACKGROUND_COLOR, None)
+        elif sgr_type >= 90 and sgr_type <= 97:
+            change_payload = (
+                TextStyleChange.FOREGROUND_COLOR,
+                Color(
+                    ColorType.NUMBERED_8_BRIGHT,
+                    BasicColor(sgr_type - 90)
+                )
+            )
+        elif sgr_type >= 100 and sgr_type <= 107:
+            change_payload = (
+                TextStyleChange.BACKGROUND_COLOR,
+                Color(
+                    ColorType.NUMBERED_8_BRIGHT,
+                    BasicColor(sgr_type - 100)
+                )
+            )
+
+        if change_payload != None:
+            special_evs.append((EventType.TEXT_STYLE, change_payload))
+
+def parse_csi_sequence(it, special_evs):
+    """
+    Parses control sequences which begin with a
+    Control Sequence Introducer (CSI) as specified
+    in ECMA-48, section 5.4.
+    Supported escape sequences append events to
+    special_evs while unsupported ones are ignored,
+    and thus filtered out.
+    """
+    params = it.takewhile_greedy(csi_parameter_byte)
+    inters = it.takewhile_greedy(csi_intermediate_byte)
+    final = it.next()
+
+    assert csi_final_byte(final)
+
+    # Unsupported CSI sequences are ignored which reduces
+    # the noise from unsupported sequences
+    if final == 'm':
+        parse_sgr_sequence(params, special_evs)
+
 class Parser(object):
     """
     Parses a subset of special control sequences read from
@@ -390,161 +555,7 @@ class Parser(object):
 
                     try:
                         if it.next() == '[':
-                            # CSI sequence
-                            try:
-                                params = it.takewhile_greedy(csi_parameter_byte)
-                                inters = it.takewhile_greedy(csi_intermediate_byte)
-                                final = it.next()
-
-                                assert csi_final_byte(final)
-
-                                if final == 'm':
-                                    # SGR (Select Graphic Rendition) sequence:
-                                    # any number of numbers separated by ';'
-                                    # which change the current text presentation.
-                                    # If the parameter string is empty, a single '0'
-                                    # is implied.
-                                    #
-                                    # We support a subset of the core SGR sequences
-                                    # as specified by ECMA-48. Most notably we also
-                                    # support the common additional bright color
-                                    # sequences. This also justifies not to implement
-                                    # the strange behavior of choosing brighter colors
-                                    # when the current text is bold.
-                                    #
-                                    # We also support ':' as a separator which is
-                                    # only necessary for extended color sequences
-                                    # as specified in ITU-T Rec. T.416 | ISO/IEC 8613-6
-                                    # (see also parse_extended_color()). Actually
-                                    # those sequences _must_ use colons and semicolons
-                                    # would be invalid. In reality, however, the
-                                    # incorrect usage of semicolons seems to be much
-                                    # more common. Thus we are extremely lenient and
-                                    # allow both ':' and ';' as well as a mix of both
-                                    # as separators.
-                                    args = re.split(r'[:;]', params)
-
-                                    arg_it = iter(args)
-                                    for arg in arg_it:
-                                        if len(arg) == 0:
-                                            # empty implies 0
-                                            sgr_type = 0
-                                        else:
-                                            try:
-                                                sgr_type = int(arg)
-                                            except ValueError:
-                                                raise AssertionError("Invalid Integer")
-
-                                        change_payload = None
-
-                                        # Not supported:
-                                        #   5-6     blink
-                                        #   7       invert
-                                        #   10      default font
-                                        #   11-19   alternative font
-                                        #   20      blackletter font
-                                        #   25      disable blinking
-                                        #   26      proportional spacing
-                                        #   27      disable inversion
-                                        #   50      disable proportional spacing
-                                        #   51      framed
-                                        #   52      encircled
-                                        #   53      overlined (TODO: implement via GTK 4 TextTag)
-                                        #   54      neither framed nor encircled
-                                        #   55      not overlined
-                                        #   60-65   ideograms (TODO: find out what this is supposed to do)
-                                        #   58-59   underline color, non-standard
-                                        #   73-65   sub/superscript, non-standard (TODO: via scale and rise)
-                                        if sgr_type == 0:
-                                            change_payload = (TextStyleChange.RESET, None)
-                                        elif sgr_type == 1:
-                                            change_payload = (TextStyleChange.WEIGHT, Pango.Weight.BOLD)
-                                        elif sgr_type == 2:
-                                            change_payload = (TextStyleChange.WEIGHT, Pango.Weight.THIN)
-                                        elif sgr_type == 3:
-                                            change_payload = (TextStyleChange.ITALIC, True)
-                                        elif sgr_type == 4:
-                                            change_payload = (TextStyleChange.UNDERLINE, Pango.Underline.SINGLE)
-                                        elif sgr_type == 8:
-                                            change_payload = (TextStyleChange.CONCEALED, True)
-                                        elif sgr_type == 9:
-                                            change_payload = (TextStyleChange.STRIKETHROUGH, True)
-                                        elif sgr_type == 21:
-                                            change_payload = (TextStyleChange.UNDERLINE, Pango.Underline.DOUBLE)
-                                        elif sgr_type == 22:
-                                            change_payload = (TextStyleChange.WEIGHT, Pango.Weight.NORMAL)
-                                        elif sgr_type == 23:
-                                            # also theoretically should disable blackletter
-                                            change_payload = (TextStyleChange.ITALIC, False)
-                                        elif sgr_type == 24:
-                                            change_payload = (TextStyleChange.UNDERLINE, Pango.Underline.NONE)
-                                        elif sgr_type == 28:
-                                            change_payload = (TextStyleChange.CONCEALED, False)
-                                        elif sgr_type == 29:
-                                            change_payload = (TextStyleChange.STRIKETHROUGH, False)
-                                        elif sgr_type >= 30 and sgr_type <= 37:
-                                            change_payload = (
-                                                TextStyleChange.FOREGROUND_COLOR,
-                                                Color(
-                                                    ColorType.NUMBERED_8,
-                                                    BasicColor(sgr_type - 30)
-                                                )
-                                            )
-                                        elif sgr_type == 38:
-                                            try:
-                                                change_payload = (
-                                                    TextStyleChange.FOREGROUND_COLOR,
-                                                    parse_extended_color(arg_it)
-                                                )
-                                            except AssertionError:
-                                                # TODO: maybe fail here?
-                                                pass
-                                        elif sgr_type == 39:
-                                            change_payload = (TextStyleChange.FOREGROUND_COLOR, None)
-                                        elif sgr_type >= 40 and sgr_type <= 47:
-                                            change_payload = (
-                                                TextStyleChange.BACKGROUND_COLOR,
-                                                Color(
-                                                    ColorType.NUMBERED_8,
-                                                    BasicColor(sgr_type - 40)
-                                                )
-                                            )
-                                        elif sgr_type == 48:
-                                            try:
-                                                change_payload = (
-                                                    TextStyleChange.BACKGROUND_COLOR,
-                                                    parse_extended_color(arg_it)
-                                                )
-                                            except AssertionError:
-                                                # TODO: maybe fail here?
-                                                pass
-                                        elif sgr_type == 49:
-                                            change_payload = (TextStyleChange.BACKGROUND_COLOR, None)
-                                        elif sgr_type >= 90 and sgr_type <= 97:
-                                            change_payload = (
-                                                TextStyleChange.FOREGROUND_COLOR,
-                                                Color(
-                                                    ColorType.NUMBERED_8_BRIGHT,
-                                                    BasicColor(sgr_type - 90)
-                                                )
-                                            )
-                                        elif sgr_type >= 100 and sgr_type <= 107:
-                                            change_payload = (
-                                                TextStyleChange.BACKGROUND_COLOR,
-                                                Color(
-                                                    ColorType.NUMBERED_8_BRIGHT,
-                                                    BasicColor(sgr_type - 100)
-                                                )
-                                            )
-
-                                        if change_payload != None:
-                                            special_evs.append((EventType.TEXT_STYLE, change_payload))
-
-
-                            except AssertionError:
-                                # invalid CSI sequence, we'll render it as text for now
-                                ignore_esc = True
-
+                            parse_csi_sequence(it, special_evs)
                         else:
                             # we only parse CSI sequences for now, all other
                             # sequences will be rendered as text to the terminal.
@@ -552,10 +563,10 @@ class Parser(object):
                             # we also want to filter out, e. g. OSC sequences
                             ignore_esc = True
 
-                        # with only backtracks if the end of input is
-                        # reached, so we do need to do it explicitly here.
-                        if ignore_esc:
-                            it.backtrack()
+                    except AssertionError:
+                        # AssertionError indicates a parse error, we'll render
+                        # a escape sequence we can't parse verbatim for now
+                        ignore_esc = True
 
                     except StopIteration:
                         # the full escape sequence wasn't contained in
@@ -565,6 +576,18 @@ class Parser(object):
                         # end of this iteration because the iterator is
                         # exhausted.
                         self.__leftover = it.wrapped[flush_until:]
+
+                        # prevent a backtrack which would break
+                        # (this can't happen in the current code, but is
+                        # a subtle problem in practise, so this line could
+                        # save us some debugging later)
+                        ignore_esc = False
+
+                    # if we want to add the (invalid) escape sequence to the
+                    # TermView verbatim, we'll need to backtrack as well as well
+                    if ignore_esc:
+                        it.backtrack()
+
 
             # at the end of input, flush if we aren't already
             if flush_until == None and it.empty():
