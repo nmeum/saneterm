@@ -38,8 +38,10 @@ class Terminal(Gtk.Window):
         self.pty.attach(None)
 
         self.pty_parser = pty.Parser()
-        # gtk TextTag to use, generated from TEXT_STYLE events
-        self.text_insert_tag = None
+        # Gtk TextTags to use, generated from TEXT_STYLE events
+        self.active_text_tags = {}
+        # Already created TextTags which are reused to save on allocs
+        self.cached_text_tags = {}
 
         self.termview = TermView(self.complete, limit)
 
@@ -155,6 +157,64 @@ class Terminal(Gtk.Window):
         ws = struct.pack('HHHH', rows, cols, width, height) # struct winsize
         fcntl.ioctl(self.pty.master, termios.TIOCSWINSZ, ws)
 
+    def get_tag_for(self, ev_data):
+        """
+        Return a Gtk TextTag for the text formatting encoded in
+        the given TEXT_STYLE event's payload (consisting of a
+        tuple of a TextStyleChange and an associated value).
+        If the tag is requested for the first time, the tag
+        is added to the TextTagTable in the TermView's buffer
+        and a reference to it stored in self.cached_text_tags.
+        From the next request onwards the cached tag is returned.
+        """
+        # check for previously created tag
+        if ev_data in self.cached_text_tags:
+            return self.cached_text_tags[ev_data]
+
+        # otherwise create a new tag or cache None
+        # which indicates that the default Gtk style is appropriate
+        (change, value) = ev_data
+        buf = self.termview.get_buffer()
+
+        if change is pty.TextStyleChange.ITALIC:
+            tag = buf.create_tag(None, style=Pango.Style.ITALIC) if value else None
+        elif change is pty.TextStyleChange.STRIKETHROUGH:
+            tag = buf.create_tag(None, strikethrough=value) if value else None
+        elif change is pty.TextStyleChange.WEIGHT:
+            if value is Pango.Weight.NORMAL:
+                tag = None
+            else:
+                tag = buf.create_tag(None, weight=value)
+        elif change is pty.TextStyleChange.UNDERLINE:
+            if value is Pango.Underline.NONE:
+                tag = None
+            else:
+                tag = buf.create_tag(None, underline=value)
+        elif change is pty.TextStyleChange.CONCEALED:
+            tag = buf.create_tag(None, invisible=value) if value else None
+        elif change is pty.TextStyleChange.FOREGROUND_COLOR:
+            if value is None:
+                tag = None
+            else:
+                rgba = value.to_gdk()
+                tag = buf.create_tag(None, foreground_rgba=rgba)
+        elif change is pty.TextStyleChange.BACKGROUND_COLOR:
+            if value is None:
+                tag = None
+            else:
+                rgba = value.to_gdk()
+                tag = buf.create_tag(None, background_rgba=rgba)
+        else:
+            # should never be called with TextStyleChange.RESET
+            raise AssertionError("unknown event or not applicable for this style change")
+
+        # note that we cache using the whole event data
+        # as opposed to using just the TextStyleChange
+        # when tracking the current display state
+        self.cached_text_tags[ev_data] = tag
+
+        return tag
+
     def handle_pty(self, source, tag, master):
         cond = source.query_unix_fd(tag)
         if cond & GLib.IOCondition.HUP:
@@ -169,12 +229,35 @@ class Terminal(Gtk.Window):
 
         for (ev, data) in self.pty_parser.parse(decoded):
             if ev is pty.EventType.TEXT:
-                self.termview.insert_data(data, self.text_insert_tag)
+                self.termview.insert_data(data, *self.active_text_tags.values())
             elif ev is pty.EventType.BELL:
                 self.termview.error_bell()
                 self.set_urgency_hint(True)
             elif ev is pty.EventType.TEXT_STYLE:
-                self.text_insert_tag = data.to_tag(self.termview.get_buffer())
+                (change, _) = data
+
+                if change is pty.TextStyleChange.RESET:
+                    # On RESET we just use the default style of the TermView
+                    self.active_text_tags = {}
+                else:
+                    # To avoid creating an unnecessary amount of TextTags,
+                    # we let get_tag_for create and cache TextTags.
+                    new_tag = self.get_tag_for(data)
+
+                    # Instead of a single tag which has the exact attributes
+                    # we need, we apply multiple tags which makes the tags
+                    # more cacheable. We track the currently active tags in
+                    # a dict mapping from TextStyleChanges to TextTags.
+                    # Since all tags associated with the same TextStyleChange
+                    # are mutually exclusive, we get the correct state updates
+                    # for free. In cases where the default style of TermView
+                    # is appropriate, get_tag_for() returns None and we delete
+                    # the respective entry from the dict.
+                    if new_tag is None:
+                        if change in self.active_text_tags:
+                            del self.active_text_tags[change]
+                    else:
+                        self.active_text_tags[change] = new_tag
             else:
                 raise AssertionError("unknown pty.EventType")
 
