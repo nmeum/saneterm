@@ -59,6 +59,10 @@ If these are installed run the following command to install `saneterm`:
 
 	$ python3 setup.py install --optimize=1
 
+You can also run saneterm's tests (with limited coverage at the moment):
+
+	$ python3 tests.py
+
 For development setups just run `python3 -msaneterm`.
 
 ## Usage
