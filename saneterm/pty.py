@@ -335,24 +335,37 @@ def parse_sgr_sequence(params, special_evs):
     We also support ':' as a separator which is
     only necessary for extended color sequences
     as specified in ITU-T Rec. T.416 | ISO/IEC 8613-6
-    (see also parse_extended_color()). Actually
-    those sequences _must_ use colons and semicolons
-    would be invalid. In reality, however, the
-    incorrect usage of semicolons seems to be much
-    more common. Thus we are extremely lenient and
-    allow both ':' and ';' as well as a mix of both
-    as separators.
-    """
-    args = re.split(r'[:;]', params)
+    (see also parse_extended_color()). This separator
+    is used for sequences which only contain one
+    parameter identifying the kind of sequence and
+    additional arguments. This is contrary to normal
+    SGR sequences where multiple parameters are
+    treatet as if they were in separate sequences.
 
-    arg_it = iter(args)
-    for arg in arg_it:
-        if len(arg) == 0:
+    The sequences specified in ITU-T Rec. T.416
+    must use colons as separators. In reality however
+    CLIs often use semicolons instead, so we support
+    both. This can cause issues in edge cases, but
+    is probably better than some applications not
+    working properly.
+    """
+    # If a colon is used as seperator we know that
+    # the params following the first one are just
+    # parameters and may not be intepreted as
+    # normal SGR parameters. We respect this
+    # by breaking after the first loop iteration.
+    single_param_with_args = ':' in params
+
+    params_split = re.split(r'[:;]', params)
+
+    params_it = iter(params_split)
+    for p in params_it:
+        if len(p) == 0:
             # empty implies 0
             sgr_type = 0
         else:
             try:
-                sgr_type = int(arg)
+                sgr_type = int(p)
             except ValueError:
                 raise AssertionError("Invalid Integer")
 
@@ -415,7 +428,7 @@ def parse_sgr_sequence(params, special_evs):
             try:
                 change_payload = (
                     TextStyleChange.FOREGROUND_COLOR,
-                    parse_extended_color(arg_it)
+                    parse_extended_color(params_it)
                 )
             except AssertionError:
                 # TODO: maybe fail here?
@@ -434,7 +447,7 @@ def parse_sgr_sequence(params, special_evs):
             try:
                 change_payload = (
                     TextStyleChange.BACKGROUND_COLOR,
-                    parse_extended_color(arg_it)
+                    parse_extended_color(params_it)
                 )
             except AssertionError:
                 # TODO: maybe fail here?
@@ -460,6 +473,9 @@ def parse_sgr_sequence(params, special_evs):
 
         if change_payload != None:
             special_evs.append((EventType.TEXT_STYLE, change_payload))
+
+        if single_param_with_args:
+            break
 
 def parse_csi_sequence(it, special_evs):
     """
