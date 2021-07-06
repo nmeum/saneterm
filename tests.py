@@ -1,4 +1,4 @@
-import copy
+#!/usr/bin/env python3
 import unittest
 
 from saneterm.color import Color, ColorType
@@ -9,13 +9,18 @@ from gi.repository import Gdk
 TEST_STRING = 'foo;bar'
 
 class TestPositionedIterator(unittest.TestCase):
+    """Tests for saneterm.pty.PositionedIterator"""
+
     def test_lossless(self):
+        """Test that the iterator doesn't loose any content"""
+
         it = PositionedIterator(TEST_STRING)
 
         self.assertEqual([x for x in it], list(TEST_STRING))
         self.assertEqual(it.wrapped, TEST_STRING)
 
     def test_indices(self):
+        """Test that the iterator's pos matches the string indices"""
         it = PositionedIterator(TEST_STRING)
 
         self.assertEqual(it.pos, -1)
@@ -34,6 +39,7 @@ class TestPositionedIterator(unittest.TestCase):
         self.assertTrue(it.empty())
 
     def test_backtracking(self):
+        """Test waypoint() and backtrack() methods"""
         it = PositionedIterator(TEST_STRING)
 
         semicolon_index = None
@@ -55,7 +61,8 @@ class TestPositionedIterator(unittest.TestCase):
         self.assertEqual(it.next(), ';')
         self.assertEqual(it.pos, semicolon_index)
 
-    def test_takewhile(self):
+    def test_takewhile_greedy(self):
+        """Test takewhile_greedy() method"""
         it = PositionedIterator(TEST_STRING)
 
         s = it.takewhile_greedy(lambda x: x != ';')
@@ -65,6 +72,7 @@ class TestPositionedIterator(unittest.TestCase):
         self.assertEqual(it.next(), ';')
 
     def test_empty(self):
+        """Test empty() predicate"""
         it = PositionedIterator(TEST_STRING)
 
         for x in it:
@@ -77,6 +85,7 @@ class TestPositionedIterator(unittest.TestCase):
             _ = it.next()
 
     def test_take(self):
+        """Test take() method"""
         length = 3
         it1 = PositionedIterator(TEST_STRING)
         it2 = PositionedIterator(TEST_STRING)
@@ -96,11 +105,13 @@ class TestPositionedIterator(unittest.TestCase):
         self.assertEqual(it1.pos, length - 1)
 
 class TestColor(unittest.TestCase):
+    """Tests for saneterm.color"""
+
     def test_256_colors(self):
         """
-        Check divmod based RGB value calculation against
-        256 color table generation as implemented in
-        XTerm's 256colres.pl.
+        Check divmod based RGB value calculation
+        against 256 color table generation as implemented
+        in XTerm's 256colres.pl.
         """
         def channel_val(c):
             return (c * 40 + 55 if c > 0 else 0) / 255
