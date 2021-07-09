@@ -2,6 +2,20 @@ from enum import Enum, auto, unique
 
 from gi.repository import Gdk
 
+# lower bounds for the extended (256) color sections
+# except for the regular 8 colors:
+#
+#     0 -   7   regular 8 colors
+#     8 -  15   bright 8 colors
+#    16 - 231   6 * 6 * 6 color cube
+#   232 - 255   24 step grayscale
+#
+# For a description of the sections and their meaning
+# as well as color values see the comment in Color.to_gdk()
+EXTENDED_COLOR_BRIGHT_LOWER = 8
+EXTENDED_COLOR_CUBE_LOWER = 16
+EXTENDED_COLOR_GRAYSCALE_LOWER = 232
+
 @unique
 class BasicColor(Enum):
     BLACK = 0
@@ -134,13 +148,16 @@ class Color(object):
         elif self.type is ColorType.TRUECOLOR:
             return int_triple_to_rgba(self.data)
         elif self.type is ColorType.NUMBERED_256:
-            if self.data < 8:
+            if self.data < EXTENDED_COLOR_BRIGHT_LOWER:
                 # normal 8 colors
                 return basic_color_to_rgba(BasicColor(self.data), bright=False)
-            elif self.data >= 8 and self.data < 16:
+            elif self.data < EXTENDED_COLOR_CUBE_LOWER:
                 # bright 8 colors
-                return basic_color_to_rgba(BasicColor(self.data - 8), bright=True)
-            elif self.data >= 16 and self.data < 232:
+                return basic_color_to_rgba(
+                    BasicColor(self.data - EXTENDED_COLOR_BRIGHT_LOWER),
+                    bright=True
+                )
+            elif self.data < EXTENDED_COLOR_GRAYSCALE_LOWER:
                 # color cube which is constructed in the following manner:
                 #
                 # * The color number is described by the following formula:
@@ -153,13 +170,13 @@ class Color(object):
                 # This is not documented anywhere as far as I am aware.
                 # The information presented here has been reverse engineered
                 # from XTerm's 256colres.pl.
-                tmp = self.data - 16
-                (r, tmp) = divmod(tmp, 36)
+                tmp = self.data - EXTENDED_COLOR_CUBE_LOWER
+                (r, tmp) = divmod(tmp, 6 * 6)
                 (g, b) = divmod(tmp, 6)
 
                 triple = tuple(map(extended_color_val, (r, g, b)))
                 return Gdk.RGBA(*triple)
             else:
                 # grayscale in 24 steps
-                c = (self.data - 232) * (1.0/24)
+                c = (self.data - EXTENDED_COLOR_GRAYSCALE_LOWER) * (1.0/24)
                 return Gdk.RGBA(c, c, c, 1.0)
