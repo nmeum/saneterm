@@ -3,7 +3,7 @@ import re
 
 from pty import fork
 from .color import Color, ColorType, BasicColor
-from enum import Enum, auto
+from enum import Enum, IntEnum, auto, unique
 from gi.repository import GLib, Pango
 
 TERM = "dumb"
@@ -247,6 +247,100 @@ def csi_final_byte(c):
     cp = ord(c)
     return cp >= 0x40 and cp <= 0x7e
 
+@unique
+class SgrParam(IntEnum):
+    """
+    Select Graphic Rendition (SGR) escape sequence
+    parameter bytes as defined in the following
+    standards:
+
+    * ECMA-48, section 8.3.117
+    * ITU-T Rec. T.416 | ISO/IEC 8613-6, section 13.1.8
+
+    Naming follows T.416 where applicable.
+    """
+
+    DEFAULT = 0
+    BOLD = 1
+    FAINT = 2
+    ITALICIZED = 3
+    SINGLY_UNDERLINED = 4
+    SLOWLY_BLINKING = 5
+    RAPIDLY_BLINKING = 6
+    NEGATIVE_IMAGE = 7
+    CONCEALED_CHARS = 8
+    CROSSED_OUT = 9
+    PRIMARY_FONT = 10
+    FIRST_ALT_FONT = 11
+    SECOND_ALT_FONT = 12
+    THIRD_ALT_FONT = 13
+    FOURTH_ALT_FONT = 14
+    FIFTH_ALT_FONT = 15
+    SIXTH_ALT_FONT = 16
+    SEVENTH_ALT_FONT = 17
+    EIGHTH_ALT_FONT = 18
+    NINTH_ALT_FONT = 19
+    FRAKTUR_FONT = 20
+    DOUBLY_UNDERLINED = 21
+    NORMAL_INTENSITY = 22
+    NOT_ITALICIZED = 23
+    NOT_UNDERLINED = 24
+    STEADY = 25
+    VARIABLE_SPACING = 26
+    POSITIVE_IMAGE = 27
+    REVEALED_CHARS = 28
+    NOT_CROSSED_OUT = 29
+    BLACK_FOREGROUND = 30
+    RED_FOREGROUND = 31
+    GREEN_FOREGROUND = 32
+    YELLOW_FOREGROUND = 33
+    BLUE_FOREGROUND = 34
+    MAGENTA_FOREGROUND = 35
+    CYAN_FOREGROUND = 36
+    WHITE_FOREGROUND = 37
+    SELECT_FOREGROUND = 38
+    DEFAULT_FOREGROUND = 39
+    BLACK_BACKGROUND = 40
+    RED_BACKGROUND = 41
+    GREEN_BACKGROUND = 42
+    YELLOW_BACKGROUND = 43
+    BLUE_BACKGROUND = 44
+    MAGENTA_BACKGROUND = 45
+    CYAN_BACKGROUND = 46
+    WHITE_BACKGROUND = 47
+    SELECT_BACKGROUND = 48
+    DEFAULT_BACKGROUND = 49
+    NOT_VARIABLE_SPACING = 50
+    FRAMED = 51
+    ENCIRCLED = 52
+    OVERLINED = 53
+    NEITHER_FRAMED_NOR_ENCIRCLED = 54
+    NOT_OVERLINED = 55
+    IDEOGRAM_UNDERLINE = 60
+    IDEOGRAM_DOUBLE_UNDERLINE = 61
+    IDEOGRAM_OVERLINE = 62
+    IDEOGRAM_DOUBLE_OVERLINE = 63
+    IDEOGRAM_STRESS_MARKING = 64
+    CANCEL_IDEOGRAM = 65
+
+    # non standard color sequences
+    BRIGHT_BLACK_FOREGROUND = 90
+    BRIGHT_RED_FOREGROUND = 91
+    BRIGHT_GREEN_FOREGROUND = 92
+    BRIGHT_YELLOW_FOREGROUND = 93
+    BRIGHT_BLUE_FOREGROUND = 94
+    BRIGHT_MAGENTA_FOREGROUND = 95
+    BRIGHT_CYAN_FOREGROUND = 96
+    BRIGHT_WHITE_FOREGROUND = 97
+    BRIGHT_BLACK_BACKGROUND = 100
+    BRIGHT_RED_BACKGROUND = 101
+    BRIGHT_GREEN_BACKGROUND = 102
+    BRIGHT_YELLOW_BACKGROUND = 103
+    BRIGHT_BLUE_BACKGROUND = 104
+    BRIGHT_MAGENTA_BACKGROUND = 105
+    BRIGHT_CYAN_BACKGROUND = 106
+    BRIGHT_WHITE_BACKGROUND = 107
+
 def parse_extended_color(iterator):
     """
     Parse extended color sequences (CSI [ 38 and CSI [ 48).
@@ -361,62 +455,56 @@ def parse_sgr_sequence(params, special_evs):
     params_it = iter(params_split)
     for p in params_it:
         if len(p) == 0:
-            # empty implies 0
-            sgr_type = 0
+            # empty implies 0 / default
+            sgr_type = SgrParam.DEFAULT
         else:
             try:
-                sgr_type = int(p)
+                sgr_type = SgrParam(int(p))
             except ValueError:
-                raise AssertionError("Invalid Integer")
+                # skip invalid params (unless colon sep)
+                sgr_type = None
 
         change_payload = None
 
         # Not supported:
-        #   5-6     blink
-        #   7       invert
-        #   10      default font
-        #   11-19   alternative font
-        #   20      blackletter font
-        #   25      disable blinking
-        #   26      proportional spacing
-        #   27      disable inversion
-        #   50      disable proportional spacing
-        #   51      framed
-        #   52      encircled
-        #   53      overlined (TODO: implement via GTK 4 TextTag)
-        #   54      neither framed nor encircled
-        #   55      not overlined
-        #   60-65   ideograms (TODO: find out what this is supposed to do)
-        #   58-59   underline color, non-standard
-        #   73-65   sub/superscript, non-standard (TODO: via scale and rise)
-        if sgr_type == 0:
+        # - SLOWLY_BLINKING, RAPIDLY_BLINKING, STEADY
+        # - NEGATIVE_IMAGE, POSITIVE_IMAGE
+        # - PRIMARY_FONT, *_ALT_FONT, FRAKTUR
+        # - VARIABLE_SPACING, NOT_VARIABLE_SPACING
+        # - FRAMED, ENCIRCLED, NEITHER_FRAMED_NOR_ENCIRCLED
+        # - OVERLINED, NOT_OVERLINED (TODO: easy to implement via GTK 4)
+        # - IDEOGRAM_*, CANCEL_IDEOGRAM (TODO: what are these supposed to do?)
+        if sgr_type is None:
+            # skip invalid param, but check single_param_with_args later
+            pass
+        elif sgr_type is SgrParam.DEFAULT:
             change_payload = (TextStyleChange.RESET, None)
-        elif sgr_type == 1:
+        elif sgr_type is SgrParam.BOLD:
             change_payload = (TextStyleChange.WEIGHT, Pango.Weight.BOLD)
-        elif sgr_type == 2:
+        elif sgr_type is SgrParam.FAINT:
             change_payload = (TextStyleChange.WEIGHT, Pango.Weight.THIN)
-        elif sgr_type == 3:
+        elif sgr_type is SgrParam.ITALICIZED:
             change_payload = (TextStyleChange.ITALIC, True)
-        elif sgr_type == 4:
+        elif sgr_type is SgrParam.SINGLY_UNDERLINED:
             change_payload = (TextStyleChange.UNDERLINE, Pango.Underline.SINGLE)
-        elif sgr_type == 8:
+        elif sgr_type is SgrParam.CONCEALED_CHARS:
             change_payload = (TextStyleChange.CONCEALED, True)
-        elif sgr_type == 9:
+        elif sgr_type is SgrParam.CROSSED_OUT:
             change_payload = (TextStyleChange.STRIKETHROUGH, True)
-        elif sgr_type == 21:
+        elif sgr_type is SgrParam.DOUBLY_UNDERLINED:
             change_payload = (TextStyleChange.UNDERLINE, Pango.Underline.DOUBLE)
-        elif sgr_type == 22:
+        elif sgr_type is SgrParam.NORMAL_INTENSITY:
             change_payload = (TextStyleChange.WEIGHT, Pango.Weight.NORMAL)
-        elif sgr_type == 23:
-            # also theoretically should disable blackletter
+        elif sgr_type is SgrParam.NOT_ITALICIZED:
+            # also theoretically should disable fraktur
             change_payload = (TextStyleChange.ITALIC, False)
-        elif sgr_type == 24:
+        elif sgr_type is SgrParam.NOT_UNDERLINED:
             change_payload = (TextStyleChange.UNDERLINE, Pango.Underline.NONE)
-        elif sgr_type == 28:
+        elif sgr_type is SgrParam.REVEALED_CHARS:
             change_payload = (TextStyleChange.CONCEALED, False)
-        elif sgr_type == 29:
+        elif sgr_type is SgrParam.NOT_CROSSED_OUT:
             change_payload = (TextStyleChange.STRIKETHROUGH, False)
-        elif sgr_type >= 30 and sgr_type <= 37:
+        elif sgr_type >= SgrParam.BLACK_FOREGROUND and sgr_type <= SgrParam.WHITE_FOREGROUND:
             change_payload = (
                 TextStyleChange.FOREGROUND_COLOR,
                 Color(
@@ -424,7 +512,7 @@ def parse_sgr_sequence(params, special_evs):
                     BasicColor(sgr_type - 30)
                 )
             )
-        elif sgr_type == 38:
+        elif sgr_type is SgrParam.SELECT_FOREGROUND:
             try:
                 change_payload = (
                     TextStyleChange.FOREGROUND_COLOR,
@@ -433,9 +521,9 @@ def parse_sgr_sequence(params, special_evs):
             except AssertionError:
                 # TODO: maybe fail here?
                 pass
-        elif sgr_type == 39:
+        elif sgr_type is SgrParam.DEFAULT_FOREGROUND:
             change_payload = (TextStyleChange.FOREGROUND_COLOR, None)
-        elif sgr_type >= 40 and sgr_type <= 47:
+        elif sgr_type >= SgrParam.BLACK_BACKGROUND and sgr_type <= SgrParam.WHITE_BACKGROUND:
             change_payload = (
                 TextStyleChange.BACKGROUND_COLOR,
                 Color(
@@ -443,7 +531,7 @@ def parse_sgr_sequence(params, special_evs):
                     BasicColor(sgr_type - 40)
                 )
             )
-        elif sgr_type == 48:
+        elif sgr_type is SgrParam.SELECT_BACKGROUND:
             try:
                 change_payload = (
                     TextStyleChange.BACKGROUND_COLOR,
@@ -452,9 +540,9 @@ def parse_sgr_sequence(params, special_evs):
             except AssertionError:
                 # TODO: maybe fail here?
                 pass
-        elif sgr_type == 49:
+        elif sgr_type is SgrParam.DEFAULT_BACKGROUND:
             change_payload = (TextStyleChange.BACKGROUND_COLOR, None)
-        elif sgr_type >= 90 and sgr_type <= 97:
+        elif sgr_type >= SgrParam.BRIGHT_BLACK_FOREGROUND and sgr_type <= SgrParam.BRIGHT_WHITE_FOREGROUND:
             change_payload = (
                 TextStyleChange.FOREGROUND_COLOR,
                 Color(
@@ -462,7 +550,7 @@ def parse_sgr_sequence(params, special_evs):
                     BasicColor(sgr_type - 90)
                 )
             )
-        elif sgr_type >= 100 and sgr_type <= 107:
+        elif sgr_type >= SgrParam.BRIGHT_WHITE_BACKGROUND and sgr_type <= SgrParam.BRIGHT_BLACK_FOREGROUND:
             change_payload = (
                 TextStyleChange.BACKGROUND_COLOR,
                 Color(
