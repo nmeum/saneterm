@@ -46,6 +46,7 @@ prototype and provides basic implementations of the following features:
 * Editing history support directly in the terminal emulator
 * File name completions
 * Pager-like text handling (scrolling, searching, …)
+* Basic support for SGR escape sequences (colors, font modifiers, …)
 
 ## Installation
 
