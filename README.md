@@ -143,7 +143,8 @@ bindings for Gtk.
 This work is heavily inspired by the Plan 9 terminal emulator, usage of
 which is further described in the [`rio(1)`][rio man page] man page.
 This terminal emulator was also [ported to Unix][9term man page] as part
-of [plan9port][plan9port web].
+of [plan9port][plan9port web]. An (unmaintained) reimplementation using
+Ruby and the Tk GUI toolkit, named [tt], is also available.
 
 There are also a few projects which seem to share the problem statement
 outlined in the Motivation but propose different solution. Most of
@@ -187,3 +188,4 @@ with this program. If not, see <http://www.gnu.org/licenses/>.
 [gtk css]: https://developer.gnome.org/gtk3/stable/chap-css-overview.html
 [dash web]: http://gondor.apana.org.au/~herbert/dash/
 [gtk primary paste]: https://developer.gnome.org/gtk3/stable/GtkSettings.html#GtkSettings--gtk-enable-primary-paste
+[tt]: https://github.com/leahneukirchen/tt
